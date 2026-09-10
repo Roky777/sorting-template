@@ -1,0 +1,8 @@
+@import url("./reset.css");
+@import url("./game.css");
+
+:root {
+  font-family: "Nunito", "Arial Rounded MT Bold", system-ui, sans-serif;
+  color: #2d1851;
+  background: #000;
+}
