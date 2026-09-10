@@ -109,7 +109,7 @@ body {
 }
 #belt-item-layer { position: absolute; z-index: 6; top: 50%; right: 0; left: 0; height: 22%; pointer-events: none; }
 /* The contact point is kept on the dark top plane, well above the front lip. */
-.game-item { position: absolute; z-index: 1; bottom: 39%; left: 2%; display: grid; justify-items: center; width: clamp(4.9rem, 10vw, 9.25rem); cursor: grab; touch-action: none; user-select: none; animation: item-conveyor-pass var(--belt-pass-duration, 11s) linear forwards; pointer-events: auto; }
+.game-item { position: absolute; z-index: 1; bottom: 39%; left: -10rem; display: grid; justify-items: center; width: clamp(4.9rem, 10vw, 9.25rem); cursor: grab; touch-action: none; user-select: none; pointer-events: auto; }
 .game-item--dragging { z-index: 8; cursor: grabbing; scale: 1.08; filter: brightness(1.06) drop-shadow(0 0 0.5rem rgb(176 239 247 / 56%)); transition: scale 120ms ease, filter 120ms ease; }
 .game-item--dragging::after { opacity: 0.2; }
 .math-art { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
@@ -331,7 +331,6 @@ body {
     translate: 118vw 0;
   }
 }
-@keyframes item-conveyor-pass { from { translate: 0 0; } to { translate: var(--belt-travel, 135vw) 0; } }
 @keyframes bin-shake { 25% { translate: -1.2% 0; } 75% { translate: 1.2% 0; } }
 @keyframes item-drop {
   0% { opacity: 1; scale: 1; translate: 0 -8%; }

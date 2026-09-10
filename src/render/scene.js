@@ -16,9 +16,9 @@ function renderItems(items, showName) {
     object.className = "game-item";
     object.dataset.draggableItem = "true";
     object.dataset.itemId = currentItem.id;
-    object.style.animationDelay = `${-currentItem.phase * 3.65}s`;
-    object.style.left = `${5 + (currentItem.slot ?? 0) * 27}%`;
-    object.style.setProperty("--belt-travel", `${37 - (currentItem.slot ?? 0) * 4}vw`);
+    // `x` is advanced by the shared conveyor controller. Keeping the value in
+    // state means a harmless UI re-render cannot restart or desynchronise it.
+    object.style.left = `${currentItem.x ?? -160}px`;
     object.setAttribute("role", "img");
     object.setAttribute("aria-label", `Drag ${currentItem.name} to the correct box`);
     object.append(art(currentItem.art, "game-item__art", currentItem.assetSet));

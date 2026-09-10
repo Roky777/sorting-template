@@ -15,6 +15,8 @@ export function createGame() {
   let drag;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
+  const ENTRY_GAP = 28;
+  const DEFAULT_ITEM_WIDTH = 145;
 
   const itemKey = (item) => item.name;
   const activeKeys = () => new Set(state.activeItems.map(itemKey));
@@ -31,6 +33,40 @@ export function createGame() {
     return 3;
   };
   const minOnBelt = () => 2;
+
+  function entryIsClear() {
+    const entryBoundary = DEFAULT_ITEM_WIDTH + ENTRY_GAP;
+    return !state.activeItems.some((item) => item.beltState !== "dragging" && (item.x ?? -DEFAULT_ITEM_WIDTH) < entryBoundary);
+  }
+
+  function syncItemPosition(item) {
+    const element = document.querySelector(`[data-draggable-item][data-item-id="${item.id}"]`);
+    if (element && !element.classList.contains("game-item--dragging")) element.style.left = `${item.x}px`;
+  }
+
+  function advanceItems({ detail }) {
+    if (state.paused || state.completedLevel || !detail?.dx) return;
+    const itemWidth = Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, detail.width * 0.1));
+    const decisionX = Math.max(itemWidth, detail.width - itemWidth - 24);
+    const moving = state.activeItems
+      .filter((item) => item.beltState !== "dragging" && item.beltState !== "sorting")
+      .sort((a, b) => (b.x ?? -itemWidth) - (a.x ?? -itemWidth));
+
+    let itemAhead;
+    for (const item of moving) {
+      item.width = itemWidth;
+      if (!Number.isFinite(item.x)) item.x = -itemWidth - ENTRY_GAP;
+      let nextX = Math.min(item.x + detail.dx, decisionX);
+      if (itemAhead) {
+        const minimumGap = (item.width + itemAhead.width) / 2 + ENTRY_GAP;
+        nextX = Math.min(nextX, itemAhead.x - minimumGap);
+      }
+      item.x = Math.max(-itemWidth - ENTRY_GAP, nextX);
+      item.beltState = item.x >= decisionX - 0.5 ? "waiting" : "moving";
+      syncItemPosition(item);
+      itemAhead = item;
+    }
+  }
 
   function refillBag() {
     const available = level().items.filter((item) => state.mastery[itemKey(item)]?.correct < level().requiredCorrectPerItem);
@@ -70,6 +106,8 @@ export function createGame() {
       spawnTimer = undefined;
       if (state.paused || state.completedLevel || state.placed) return;
       if (state.activeItems.length >= maxOnBelt()) return;
+      // Never place a new card on top of one that is still entering the lane.
+      if (!entryIsClear()) return scheduleSpawn(220 + Math.random() * 120);
       const source = pickNextItem();
       // A blocked entry or temporarily ineligible bag must retry; it must
       // never silently leave the conveyor under-populated.
@@ -79,7 +117,13 @@ export function createGame() {
       state.lastCategory = source.answer;
       state.categoryHistory.push(source.answer);
       if (state.categoryHistory.length > 6) state.categoryHistory.shift();
-      state.activeItems.push({ ...source, id: state.itemSerial += 1, phase: state.activeItems.length * .22, slot: state.activeItems.length });
+      state.activeItems.push({
+        ...source,
+        id: state.itemSerial += 1,
+        x: -DEFAULT_ITEM_WIDTH - ENTRY_GAP,
+        width: DEFAULT_ITEM_WIDTH,
+        beltState: "moving",
+      });
       render();
       if (state.activeItems.length < maxOnBelt()) scheduleSpawn(360 + Math.random() * 240);
     }, delay);
@@ -154,16 +198,16 @@ export function createGame() {
       return;
     }
     state.mastery[itemKey(activeItem)].wrong += 1;
-    state.weakItemQueue.push({ item: activeItem, readyAt: state.spawnCount + 2 + Math.floor(Math.random() * 4) });
-    // Remove the rejected object from the active belt; its queued return is
-    // deliberately spaced behind other materials rather than immediate.
-    state.activeItems = state.activeItems.filter((candidate) => candidate.id !== activeItem.id);
+    // A wrong item returns to this same belt position after feedback. This
+    // avoids a duplicate spawning while still giving the child another turn.
+    activeItem.beltState = "returning";
     state.feedback = { type: "wrong", message: "Try again!", category };
     sounds.retry();
     render();
     window.clearTimeout(advanceTimer);
     advanceTimer = window.setTimeout(() => {
       state.feedback = null;
+      activeItem.beltState = "moving";
       render();
       ensureBeltPopulation();
     }, 600);
@@ -212,6 +256,7 @@ export function createGame() {
   }
 
   function start() {
+    window.addEventListener("conveyor-motion", advanceItems);
     document.querySelector("#sound-button").addEventListener("click", () => {
       state.muted = !state.muted;
       sounds.setMuted(state.muted);
@@ -234,6 +279,8 @@ export function createGame() {
         target, layer, bounds, width: itemBounds.width, height: itemBounds.height, pointerId: event.pointerId,
         offsetX: event.clientX - itemBounds.left, offsetY: event.clientY - itemBounds.top,
       };
+      const activeItem = state.activeItems.find((item) => String(item.id) === String(target.dataset.itemId));
+      if (activeItem) activeItem.beltState = "dragging";
       target.setPointerCapture(event.pointerId);
       target.classList.add("game-item--dragging");
       target.style.animation = "none";
@@ -246,6 +293,8 @@ export function createGame() {
       drag.target.style.left = `${Math.max(-drag.width * 0.25, Math.min(x, drag.bounds.width - drag.width * 0.75))}px`;
       drag.target.style.top = `${Math.max(-drag.height * 0.3, Math.min(y, drag.bounds.height - drag.height * 0.15))}px`;
       drag.target.style.bottom = "auto";
+      const activeItem = state.activeItems.find((item) => String(item.id) === String(drag.target.dataset.itemId));
+      if (activeItem) activeItem.x = Math.max(-drag.width * 0.25, Math.min(x, drag.bounds.width - drag.width * 0.75));
       document.querySelectorAll("[data-drop-category]").forEach((bin) => {
         const rect = bin.getBoundingClientRect();
         const isInside = event.clientX >= rect.left && event.clientX <= rect.right
@@ -262,7 +311,11 @@ export function createGame() {
       document.querySelectorAll("[data-drop-category]").forEach((bin) => bin.classList.remove("sorting-bin--active-drop"));
       drag = null;
       if (droppedOn) choose(draggedItemId, droppedOn.dataset.dropCategory);
-      else render();
+      else {
+        const activeItem = state.activeItems.find((item) => String(item.id) === String(draggedItemId));
+        if (activeItem) activeItem.beltState = "moving";
+        render();
+      }
     });
     bindInput(dispatch);
     loadBelt();

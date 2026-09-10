@@ -1,4 +1,6 @@
-const BELT_SPEED = 70;
+// This is the single source of truth for conveyor travel. Both the seam SVG
+// and the objects subscribe to this same requestAnimationFrame clock.
+const BELT_SPEED = 145;
 const PERSPECTIVE_FACTOR = 0.82;
 
 export function startConveyorAnimation() {
@@ -33,9 +35,6 @@ export function startConveyorAnimation() {
     spacing = Math.max(120, Math.min(180, width / 8));
     seams.setAttribute("viewBox", `0 0 ${width} ${height}`);
     seams.setAttribute("preserveAspectRatio", "none");
-    const travel = width * 1.35;
-    itemLane.style.setProperty("--belt-travel", `${travel.toFixed(2)}px`);
-    itemLane.style.setProperty("--belt-pass-duration", `${(travel / BELT_SPEED).toFixed(2)}s`);
   }
 
   function draw() {
@@ -54,8 +53,14 @@ export function startConveyorAnimation() {
   function tick(now) {
     const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
-    offset = (offset + BELT_SPEED * deltaSeconds) % spacing;
+    const dx = BELT_SPEED * deltaSeconds;
+    offset = (offset + dx) % spacing;
     draw();
+    // Game objects deliberately do not use a CSS keyframe. Dispatching their
+    // per-frame delta makes their movement visually locked to these seams.
+    window.dispatchEvent(new CustomEvent("conveyor-motion", {
+      detail: { dx, speed: BELT_SPEED, width, height },
+    }));
     requestAnimationFrame(tick);
   }
 
