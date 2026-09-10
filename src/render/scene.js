@@ -18,6 +18,7 @@ function renderItems(items, showName) {
     object.dataset.itemId = currentItem.id;
     object.style.animationDelay = `${-currentItem.phase * 3.65}s`;
     object.style.left = `${5 + (currentItem.slot ?? 0) * 27}%`;
+    object.style.setProperty("--belt-travel", `${37 - (currentItem.slot ?? 0) * 4}vw`);
     object.setAttribute("role", "img");
     object.setAttribute("aria-label", `Drag ${currentItem.name} to the correct box`);
     object.append(art(currentItem.art, "game-item__art", currentItem.assetSet));

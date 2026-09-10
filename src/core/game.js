@@ -17,6 +17,14 @@ export function createGame() {
 
   const itemKey = (item) => item.name;
   const activeKeys = () => new Set(state.activeItems.map(itemKey));
+  const shuffle = (items) => {
+    const bag = [...items];
+    for (let index = bag.length - 1; index > 0; index -= 1) {
+      const swap = Math.floor(Math.random() * (index + 1));
+      [bag[index], bag[swap]] = [bag[swap], bag[index]];
+    }
+    return bag;
+  };
   const maxOnBelt = () => {
     const start = level().maxObjectsStart;
     if (start >= 3) return 3;
@@ -25,16 +33,36 @@ export function createGame() {
     return start;
   };
 
+  function refillBag() {
+    const available = level().items.filter((item) => state.mastery[itemKey(item)]?.correct < level().requiredCorrectPerItem);
+    state.spawnBag = shuffle(available);
+  }
+
+  function allowsCategory(category) {
+    const history = state.categoryHistory;
+    if (history.length >= 2 && history.at(-1) === category && history.at(-2) === category) return false;
+    // Break an overly predictable A-B-A-B-A-B run with a valid paired category.
+    if (history.length >= 5 && history.slice(-5).every((value, index, values) => index === 0 || value !== values[index - 1])) return category === history.at(-1);
+    return true;
+  }
+
   function pickNextItem() {
     const active = activeKeys();
-    const candidates = level().items.filter((item) => state.mastery[itemKey(item)]?.correct < level().requiredCorrectPerItem && !active.has(itemKey(item)));
+    const eligible = (item) => state.mastery[itemKey(item)]?.correct < level().requiredCorrectPerItem && !active.has(itemKey(item));
+    const readyWeak = state.weakItemQueue.find((entry) => state.spawnCount >= entry.readyAt && eligible(entry.item) && allowsCategory(entry.item.answer));
+    if (readyWeak) {
+      state.weakItemQueue = state.weakItemQueue.filter((entry) => entry !== readyWeak);
+      return readyWeak.item;
+    }
+    if (!state.spawnBag.some(eligible)) refillBag();
+    let candidates = state.spawnBag.filter((item) => eligible(item) && allowsCategory(item.answer));
+    if (!candidates.length) candidates = state.spawnBag.filter(eligible);
     if (!candidates.length) return null;
-    // Weak items return after a few other spawns; otherwise rotate categories.
-    const weak = candidates.filter((item) => state.mastery[itemKey(item)].wrong > 0 && state.spawnCount - state.mastery[itemKey(item)].lastSeen >= 3);
-    const pool = weak.length ? weak : candidates;
-    const previous = state.lastCategory;
-    const varied = pool.filter((item) => item.answer !== previous || pool.filter((other) => other.answer !== previous).length === 0);
-    return varied[Math.floor(Math.random() * varied.length)];
+    // Bag order is shuffled once per cycle; selecting its first valid item makes
+    // every remaining material appear before the bag is rebuilt.
+    const next = candidates[0];
+    state.spawnBag = state.spawnBag.filter((item) => item !== next);
+    return next;
   }
 
   function scheduleSpawn(delay = 0) {
@@ -46,6 +74,8 @@ export function createGame() {
       const key = itemKey(source);
       state.mastery[key].lastSeen = ++state.spawnCount;
       state.lastCategory = source.answer;
+      state.categoryHistory.push(source.answer);
+      if (state.categoryHistory.length > 6) state.categoryHistory.shift();
       state.activeItems.push({ ...source, id: state.itemSerial += 1, phase: state.activeItems.length * .22, slot: state.activeItems.length });
       render();
       if (state.activeItems.length < maxOnBelt()) scheduleSpawn(900 + Math.random() * 800);
@@ -56,6 +86,9 @@ export function createGame() {
     state.activeItems = [];
     state.spawnCount = 0;
     state.lastCategory = null;
+    state.spawnBag = [];
+    state.weakItemQueue = [];
+    state.categoryHistory = [];
     state.mastery = Object.fromEntries(level().items.map((item) => [itemKey(item), { correct: 0, wrong: 0, lastSeen: -99 }]));
     state.totalRequired = level().items.length * level().requiredCorrectPerItem;
     state.completedMastery = 0;
@@ -112,6 +145,10 @@ export function createGame() {
       return;
     }
     state.mastery[itemKey(activeItem)].wrong += 1;
+    state.weakItemQueue.push({ item: activeItem, readyAt: state.spawnCount + 2 + Math.floor(Math.random() * 4) });
+    // Remove the rejected object from the active belt; its queued return is
+    // deliberately spaced behind other materials rather than immediate.
+    state.activeItems = state.activeItems.filter((candidate) => candidate.id !== activeItem.id);
     state.feedback = { type: "wrong", message: "Try again!", category };
     sounds.retry();
     render();
@@ -119,6 +156,7 @@ export function createGame() {
     advanceTimer = window.setTimeout(() => {
       state.feedback = null;
       render();
+      scheduleSpawn(1000 + Math.random() * 800);
     }, 600);
   }
 
