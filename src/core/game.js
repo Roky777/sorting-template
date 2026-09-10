@@ -11,6 +11,7 @@ export function createGame() {
   let advanceTimer;
   let feedbackTimer;
   let spawnTimer;
+  let refillTimer;
   let drag;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
@@ -26,12 +27,10 @@ export function createGame() {
     return bag;
   };
   const maxOnBelt = () => {
-    const start = level().maxObjectsStart;
-    if (start >= 3) return 3;
-    if (state.completedMastery >= 7) return 3;
-    if (state.completedMastery >= 2) return Math.max(2, start);
-    return start;
+    // Outside an explicit tutorial, a live conveyor settles at three objects.
+    return 3;
   };
+  const minOnBelt = () => 2;
 
   function refillBag() {
     const available = level().items.filter((item) => state.mastery[itemKey(item)]?.correct < level().requiredCorrectPerItem);
@@ -66,11 +65,15 @@ export function createGame() {
   }
 
   function scheduleSpawn(delay = 0) {
-    window.clearTimeout(spawnTimer);
+    if (spawnTimer) return;
     spawnTimer = window.setTimeout(() => {
-      if (state.paused || state.completedLevel || state.placed || state.activeItems.length >= maxOnBelt()) return;
+      spawnTimer = undefined;
+      if (state.paused || state.completedLevel || state.placed) return;
+      if (state.activeItems.length >= maxOnBelt()) return;
       const source = pickNextItem();
-      if (!source) return;
+      // A blocked entry or temporarily ineligible bag must retry; it must
+      // never silently leave the conveyor under-populated.
+      if (!source) return scheduleSpawn(260 + Math.random() * 140);
       const key = itemKey(source);
       state.mastery[key].lastSeen = ++state.spawnCount;
       state.lastCategory = source.answer;
@@ -78,8 +81,14 @@ export function createGame() {
       if (state.categoryHistory.length > 6) state.categoryHistory.shift();
       state.activeItems.push({ ...source, id: state.itemSerial += 1, phase: state.activeItems.length * .22, slot: state.activeItems.length });
       render();
-      if (state.activeItems.length < maxOnBelt()) scheduleSpawn(900 + Math.random() * 800);
+      if (state.activeItems.length < maxOnBelt()) scheduleSpawn(360 + Math.random() * 240);
     }, delay);
+  }
+
+  function ensureBeltPopulation() {
+    if (state.paused || state.completedLevel || state.placed || state.feedback) return;
+    if (state.activeItems.length < minOnBelt()) scheduleSpawn(120);
+    else if (state.activeItems.length < maxOnBelt()) scheduleSpawn(520 + Math.random() * 280);
   }
 
   function loadBelt() {
@@ -139,7 +148,7 @@ export function createGame() {
           if (state.completedMastery >= state.totalRequired) return finishLevel();
           state.feedback = null;
           render();
-          scheduleSpawn(900 + Math.random() * 800);
+          ensureBeltPopulation();
         }, 280);
       }, 410);
       return;
@@ -156,7 +165,7 @@ export function createGame() {
     advanceTimer = window.setTimeout(() => {
       state.feedback = null;
       render();
-      scheduleSpawn(1000 + Math.random() * 800);
+      ensureBeltPopulation();
     }, 600);
   }
 
@@ -164,6 +173,7 @@ export function createGame() {
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
+    spawnTimer = undefined;
     if (state.levelIndex === MATH_LEVELS.length - 1) {
       state.screen = "complete";
       return render();
@@ -184,6 +194,7 @@ export function createGame() {
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
+    spawnTimer = undefined;
     Object.assign(state, createInitialState());
     loadBelt();
     render();
@@ -255,6 +266,9 @@ export function createGame() {
     });
     bindInput(dispatch);
     loadBelt();
+    // Self-healing guard: a missed timer or blocked entrance gets another
+    // opportunity every short tick, while the guarded scheduler avoids floods.
+    refillTimer = window.setInterval(ensureBeltPopulation, 350);
     render();
   }
 
