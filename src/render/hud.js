@@ -8,5 +8,7 @@ export function renderHud(state, level) {
   fill.style.width = `${progress * 100}%`;
   track.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
   document.querySelector("#mastery-text").textContent = progress >= 1 ? "Done!" : state.completedMastery ? "Keep going!" : "Start!";
-  document.querySelector("#score-card").textContent = `★ ${state.score}`;
+  const scoreCard = document.querySelector("#score-card");
+  scoreCard.textContent = `★ ${state.score}`;
+  scoreCard.classList.toggle("hud__score--penalty", state.feedback?.type === "missed");
 }

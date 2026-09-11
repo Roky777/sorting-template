@@ -396,6 +396,11 @@ body {
 .hud__level span { font-size: clamp(.72rem, 1.2vw, 1.02rem); }
 .hud__level small { font-size: clamp(.52rem, .85vw, .75rem); white-space: nowrap; }
 .hud__score { padding: .44em .7em; color: #7d4117; font-size: clamp(.75rem, 1.3vw, 1.1rem); white-space: nowrap; }
+.hud__score--penalty {
+  background: linear-gradient(180deg, #ff9b55, #d94e2e);
+  color: #fff;
+  animation: score-penalty 360ms ease-out both;
+}
 .icon-button--sound {
   font-size: clamp(1.5rem, 3vw, 2.5rem);
 }
@@ -426,6 +431,12 @@ body {
 .feedback--correct { background: #18a85e; }
 .feedback--wrong { background: #f04d54; }
 .feedback--missed { background: #d96b25; }
+@keyframes score-penalty {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.13) rotate(-2deg); }
+  70% { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1); }
+}
 .game-modal { position: absolute; top: 50%; left: 50%; width: min(78%, 28rem); padding: clamp(1.1rem, 3vw, 2.5rem); border: 0.35vw solid #fff; border-radius: 1.7rem; transform: translate(-50%, -50%); background: #e8fbff; color: #15506b; text-align: center; box-shadow: 0 0 0 0.35vw #70ddea, 0 0.8vw 1.2vw rgb(5 63 85 / 36%); pointer-events: auto; }
 .game-modal h2 { margin: 0.12em 0; font-size: clamp(1.5rem, 3.2vw, 2.7rem); }
 .game-modal p { margin: 0.3em 0 1em; font-size: clamp(0.85rem, 1.55vw, 1.2rem); font-weight: 700; }

@@ -17,7 +17,9 @@ export function createGame() {
   const level = () => getLevel(state.levelIndex);
   const ENTRY_GAP = 28;
   const DEFAULT_ITEM_WIDTH = 145;
+  const MIN_SPAWN_SPACING_RATIO = 0.2;
   const MISS_PENALTY = 5;
+  let beltWidth = window.innerWidth;
 
   const itemKey = (item) => item.name;
   const activeKeys = () => new Set(state.activeItems.map(itemKey));
@@ -38,9 +40,15 @@ export function createGame() {
   };
   const minOnBelt = () => Math.min(2, maxOnBelt());
 
+  const itemWidthFor = (width = beltWidth) => Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, width * 0.1));
+
   function entryIsClear() {
-    const entryBoundary = DEFAULT_ITEM_WIDTH + ENTRY_GAP;
-    return !state.activeItems.some((item) => item.beltState !== "dragging" && (item.x ?? -DEFAULT_ITEM_WIDTH) < entryBoundary);
+    const itemWidth = itemWidthFor();
+    // New items launch only after the previous item has travelled far enough
+    // into the lane. Once launched, every item moves independently, so a
+    // dragged/returning object can never create a queue at the belt exit.
+    const launchClearance = Math.max(itemWidth + ENTRY_GAP, beltWidth * MIN_SPAWN_SPACING_RATIO);
+    return !state.activeItems.some((item) => (item.x ?? -itemWidth) < launchClearance);
   }
 
   function syncItemPosition(item) {
@@ -50,26 +58,20 @@ export function createGame() {
 
   function advanceItems({ detail }) {
     if (state.paused || state.completedLevel || !detail?.dx) return;
-    const itemWidth = Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, detail.width * 0.1));
-    const moving = state.activeItems
-      .filter((item) => item.beltState === "moving")
-      .sort((a, b) => (b.x ?? -itemWidth) - (a.x ?? -itemWidth));
+    beltWidth = detail.width;
+    const itemWidth = itemWidthFor(detail.width);
+    const moving = state.activeItems.filter((item) => item.beltState === "moving");
 
-    let itemAhead;
     for (const item of moving) {
       item.width = itemWidth;
       if (!Number.isFinite(item.x)) item.x = -itemWidth - ENTRY_GAP;
-      let nextX = item.x + detail.dx;
-      if (itemAhead) {
-        const minimumGap = (item.width + itemAhead.width) / 2 + ENTRY_GAP;
-        nextX = Math.min(nextX, itemAhead.x - minimumGap);
-      }
-      item.x = Math.max(-itemWidth - ENTRY_GAP, nextX);
+      item.x += detail.dx;
       syncItemPosition(item);
-      itemAhead = item;
     }
 
-    const missed = moving.filter((item) => item.x > detail.width + item.width);
+    // `x` is the item's left edge. Crossing the lane width means the complete
+    // object has visibly passed out of the right side before the miss fires.
+    const missed = moving.filter((item) => item.x >= detail.width);
     if (missed.length) handleMissedItems(missed);
   }
 
@@ -231,18 +233,16 @@ export function createGame() {
       return;
     }
     state.mastery[itemKey(activeItem)].wrong += 1;
-    // A wrong item returns to this same belt position after feedback. This
-    // avoids a duplicate spawning while still giving the child another turn.
-    activeItem.beltState = "returning";
+    // A wrong item snaps back onto the moving belt immediately. Pausing it here
+    // would let following objects catch up and visually form a stack.
+    activeItem.beltState = "moving";
     state.feedback = { type: "wrong", message: "Try again!", category };
     sounds.retry();
     render();
     const returnLevel = state.levelIndex;
     window.setTimeout(() => {
-      const returningItem = state.activeItems.find((item) => item.id === activeItem.id);
-      if (state.levelIndex !== returnLevel || !returningItem) return;
+      if (state.levelIndex !== returnLevel) return;
       if (state.feedback?.type === "wrong") state.feedback = null;
-      returningItem.beltState = "moving";
       render();
       ensureBeltPopulation();
     }, 320);
