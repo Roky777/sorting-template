@@ -12,6 +12,8 @@ export function createGame() {
   let feedbackTimer;
   let spawnTimer;
   let refillTimer;
+  let introTimer;
+  let milestoneTimer;
   let drag;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
@@ -22,6 +24,12 @@ export function createGame() {
   let beltWidth = window.innerWidth;
 
   const itemKey = (item) => item.name;
+  const visualScaleFor = (item) => {
+    if (/coin|marble|bangle/i.test(item.name)) return 0.82;
+    if (/pencil|ruler|stick|candle|rope/i.test(item.name)) return 1.08;
+    if (/orange|ball|football/i.test(item.name)) return 0.98;
+    return 1;
+  };
   const activeKeys = () => new Set(state.activeItems.map(itemKey));
   const shuffle = (items) => {
     const bag = [...items];
@@ -32,10 +40,11 @@ export function createGame() {
     return bag;
   };
   const maxOnBelt = () => {
-    const start = level().maxObjectsStart ?? 2;
-    const progress = state.totalRequired ? state.completedMastery / state.totalRequired : 0;
-    if (progress >= 0.42) return 3;
-    if (progress >= 0.14) return Math.max(2, start);
+    const start = level().occupancyStart ?? 2;
+    const target = level().occupancyTarget ?? 3;
+    const rampAt = level().occupancyRampAt ?? 2;
+    if (state.completedMastery >= rampAt) return target;
+    if (start === 1 && state.completedMastery > 0) return Math.min(2, target);
     return start;
   };
   const minOnBelt = () => Math.min(2, maxOnBelt());
@@ -78,13 +87,19 @@ export function createGame() {
   function handleMissedItems(missedItems) {
     const missedIds = new Set(missedItems.map((item) => item.id));
     state.activeItems = state.activeItems.filter((item) => !missedIds.has(item.id));
+    if (missedIds.has(Number(state.selectedItemId))) state.selectedItemId = null;
     for (const missedItem of missedItems) {
-      state.mastery[itemKey(missedItem)].wrong += 1;
+      const mastery = state.mastery[itemKey(missedItem)];
+      mastery.wrong += 1;
+      mastery.mistakesSinceCorrect += 1;
       state.weakItemQueue.push({
         item: missedItem,
         readyAt: state.spawnCount + 2 + Math.floor(Math.random() * 4),
       });
     }
+    state.attempts += missedItems.length;
+    state.levelAttempts += missedItems.length;
+    state.correctStreak = 0;
     state.score -= MISS_PENALTY * missedItems.length;
     state.feedback = {
       type: "missed",
@@ -154,6 +169,9 @@ export function createGame() {
       state.activeItems.push({
         ...source,
         id: state.itemSerial += 1,
+        spawnOrder: state.spawnCount,
+        visualScale: visualScaleFor(source),
+        rotation: source.answer === "long" ? -8 + Math.random() * 16 : 0,
         x: -DEFAULT_ITEM_WIDTH - ENTRY_GAP,
         width: DEFAULT_ITEM_WIDTH,
         beltState: "moving",
@@ -170,16 +188,39 @@ export function createGame() {
   }
 
   function loadBelt() {
+    window.clearTimeout(introTimer);
+    window.clearTimeout(milestoneTimer);
+    const carryWeakNames = new Set(state.carryWeakNames);
     state.activeItems = [];
     state.spawnCount = 0;
     state.lastCategory = null;
     state.spawnBag = [];
     state.weakItemQueue = [];
     state.categoryHistory = [];
-    state.mastery = Object.fromEntries(level().items.map((item) => [itemKey(item), { correct: 0, wrong: 0, lastSeen: -99 }]));
+    state.mastery = Object.fromEntries(level().items.map((item) => [itemKey(item), {
+      correct: 0, wrong: 0, mistakesSinceCorrect: 0, lastSeen: -99,
+    }]));
+    state.weakItemQueue = level().items
+      .filter((item) => carryWeakNames.has(item.name))
+      .map((item, index) => ({ item, readyAt: index * 2 }));
+    state.carryWeakNames = [];
     state.totalRequired = level().items.length * level().requiredCorrectPerItem;
     state.completedMastery = 0;
-    scheduleSpawn(0);
+    state.correctStreak = 0;
+    state.sortedCategories = [];
+    state.reachedMilestones = [];
+    state.specialRewards = [];
+    state.lastCorrectByCategory = {};
+    state.levelAttempts = 0;
+    state.levelFirstTryCorrect = 0;
+    state.hintCategory = null;
+    state.milestone = null;
+    state.introVisible = true;
+    scheduleSpawn(550);
+    introTimer = window.setTimeout(() => {
+      state.introVisible = false;
+      render();
+    }, [4200, 2200, 3200, 2400, 2400, 3200, 2200, 3400, 2400][state.levelIndex]);
   }
 
   function render() {
@@ -189,8 +230,11 @@ export function createGame() {
   }
 
   function finishLevel() {
+    if (state.completedLevel) return;
     state.score += 50;
-    state.stars = Math.max(1, Math.ceil((state.completedMastery / state.totalRequired) * state.maxStars));
+    const accuracy = state.levelAttempts ? state.levelFirstTryCorrect / state.levelAttempts : 1;
+    state.stars = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : 1;
+    state.campaignStars += state.stars;
     state.completedLevel = true;
     state.feedback = { type: "complete", message: "Wonderful sorting!" };
     render();
@@ -203,13 +247,52 @@ export function createGame() {
     if (correct) {
       const mastery = state.mastery[itemKey(activeItem)];
       const wasMastered = mastery.correct >= level().requiredCorrectPerItem;
-      const points = mastery.wrong ? 7 : 10;
+      const beforeProgress = state.totalRequired ? state.completedMastery / state.totalRequired : 0;
+      const firstTry = mastery.mistakesSinceCorrect === 0;
+      const points = firstTry ? 10 : 7;
       mastery.correct += 1;
+      mastery.mistakesSinceCorrect = 0;
       state.completedMastery += 1;
-      state.score += points;
-      if (!wasMastered && mastery.correct === level().requiredCorrectPerItem) state.score += 15;
+      state.attempts += 1;
+      state.levelAttempts += 1;
+      if (firstTry) {
+        state.firstTryCorrect += 1;
+        state.levelFirstTryCorrect += 1;
+        state.correctStreak += 1;
+      } else {
+        state.correctStreak = 0;
+      }
+      let bonus = 0;
+      let rewardTitle;
+      const newlyMastered = !wasMastered && mastery.correct === level().requiredCorrectPerItem;
+      if (newlyMastered) bonus += 15;
+      if (level().streakBonus && state.correctStreak >= 3 && !state.specialRewards.includes("streak")) {
+        state.specialRewards.push("streak");
+        bonus += 5;
+      }
+      if (level().bothBonus && activeItem.answer === "both" && !state.specialRewards.includes("both")) {
+        state.specialRewards.push("both");
+        bonus += 5;
+      }
+      if (!state.sortedCategories.includes(activeItem.answer)) state.sortedCategories.push(activeItem.answer);
+      if (level().trioBonus && state.sortedCategories.length === 3 && !state.specialRewards.includes("trio")) {
+        state.specialRewards.push("trio");
+        bonus += 5;
+      }
+      const previousInCategory = state.lastCorrectByCategory[activeItem.answer];
+      if (state.levelIndex === 2 && previousInCategory && previousInCategory !== activeItem.name && !state.specialRewards.includes("family-insight")) {
+        state.specialRewards.push("family-insight");
+        rewardTitle = "Same shape family!";
+      }
+      if (state.levelIndex === 5 && !state.specialRewards.includes(`motion-${activeItem.answer}`)) {
+        state.specialRewards.push(`motion-${activeItem.answer}`);
+        rewardTitle = activeItem.answer === "rolls" ? "It rolls!" : "It slides!";
+      }
+      state.lastCorrectByCategory[activeItem.answer] = activeItem.name;
+      state.score += points + bonus;
       state.correct += 1;
       state.placed = { art: activeItem.art, assetSet: activeItem.assetSet, category };
+      state.selectedItemId = null;
       state.activeItems = state.activeItems.filter((candidate) => candidate.id !== activeItem.id);
       // The dropped item is now owned by the short bin animation, not the belt.
       render();
@@ -220,8 +303,24 @@ export function createGame() {
       advanceTimer = window.setTimeout(() => {
         // Remove it before presenting feedback or allowing the next belt item.
         state.placed = null;
-        state.feedback = { type: "correct", message: "Great job!", category };
+        state.feedback = {
+          type: newlyMastered ? "mastered" : "correct",
+          message: `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Great job!")} +${points + bonus}`,
+          category,
+        };
         sounds.success();
+        const afterProgress = state.totalRequired ? state.completedMastery / state.totalRequired : 0;
+        const milestone = [0.25, 0.5, 0.75].find((value) => beforeProgress < value && afterProgress >= value && !state.reachedMilestones.includes(value));
+        if (milestone) {
+          state.reachedMilestones.push(milestone);
+          state.milestone = Math.round(milestone * 100);
+          sounds.milestone();
+          window.clearTimeout(milestoneTimer);
+          milestoneTimer = window.setTimeout(() => {
+            state.milestone = null;
+            render();
+          }, 760);
+        }
         render();
         feedbackTimer = window.setTimeout(() => {
           if (state.completedMastery >= state.totalRequired) return finishLevel();
@@ -232,31 +331,51 @@ export function createGame() {
       }, 260);
       return;
     }
-    state.mastery[itemKey(activeItem)].wrong += 1;
+    const mastery = state.mastery[itemKey(activeItem)];
+    mastery.wrong += 1;
+    mastery.mistakesSinceCorrect += 1;
+    state.attempts += 1;
+    state.levelAttempts += 1;
+    state.correctStreak = 0;
     // A wrong item snaps back onto the moving belt immediately. Pausing it here
     // would let following objects catch up and visually form a stack.
     activeItem.beltState = "moving";
-    state.feedback = { type: "wrong", message: "Try again!", category };
+    state.hintCategory = mastery.wrong >= 2 ? activeItem.answer : null;
+    state.selectedItemId = null;
+    state.feedback = {
+      type: "wrong",
+      message: mastery.wrong >= 3 ? "Try the glowing box" : mastery.wrong >= 2 ? "Look at the shape clue" : "Try again!",
+      category,
+    };
     sounds.retry();
     render();
     const returnLevel = state.levelIndex;
+    const hintDuration = mastery.wrong >= 2 ? 900 : 320;
     window.setTimeout(() => {
       if (state.levelIndex !== returnLevel) return;
       if (state.feedback?.type === "wrong") state.feedback = null;
+      state.hintCategory = null;
       render();
       ensureBeltPopulation();
-    }, 320);
+    }, hintDuration);
   }
 
   function nextLevel() {
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
+    window.clearTimeout(introTimer);
+    window.clearTimeout(milestoneTimer);
     spawnTimer = undefined;
     if (state.levelIndex === MATH_LEVELS.length - 1) {
       state.screen = "complete";
       return render();
     }
+    // Closely related picture-challenge levels begin by revisiting concepts
+    // that caused difficulty in their preceding supported level.
+    state.carryWeakNames = [0, 5, 7].includes(state.levelIndex)
+      ? Object.entries(state.mastery).filter(([, value]) => value.wrong > 0).map(([name]) => name)
+      : [];
     state.levelIndex += 1;
     state.level = state.levelIndex + 1;
     state.itemIndex = 0;
@@ -273,6 +392,8 @@ export function createGame() {
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
+    window.clearTimeout(introTimer);
+    window.clearTimeout(milestoneTimer);
     spawnTimer = undefined;
     Object.assign(state, createInitialState());
     loadBelt();
@@ -304,6 +425,24 @@ export function createGame() {
       if (button.dataset.action === "next") dispatch({ type: "next" });
       if (button.dataset.action === "restart") dispatch({ type: "restart" });
     });
+    document.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key) || state.paused || state.completedLevel || state.placed) return;
+      const itemTarget = event.target.closest?.("[data-draggable-item]");
+      if (itemTarget) {
+        state.selectedItemId = itemTarget.dataset.itemId;
+        sounds.pickup();
+        render();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      const binTarget = event.target.closest?.("[data-drop-category]");
+      if (binTarget && state.selectedItemId) {
+        choose(state.selectedItemId, binTarget.dataset.dropCategory);
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
     document.addEventListener("pointerdown", (event) => {
       const target = event.target.closest("[data-draggable-item]");
       if (!target || state.paused || state.completedLevel || state.placed) return;
@@ -316,6 +455,8 @@ export function createGame() {
       };
       const activeItem = state.activeItems.find((item) => String(item.id) === String(target.dataset.itemId));
       if (activeItem) activeItem.beltState = "dragging";
+      state.selectedItemId = null;
+      sounds.pickup();
       target.setPointerCapture(event.pointerId);
       target.classList.add("game-item--dragging");
       target.style.animation = "none";
@@ -351,6 +492,15 @@ export function createGame() {
         if (activeItem) activeItem.beltState = "moving";
         render();
       }
+    });
+    document.addEventListener("pointercancel", (event) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const activeItem = state.activeItems.find((item) => String(item.id) === String(drag.target.dataset.itemId));
+      if (activeItem) activeItem.beltState = "moving";
+      drag.target.releasePointerCapture?.(event.pointerId);
+      document.querySelectorAll("[data-drop-category]").forEach((bin) => bin.classList.remove("sorting-bin--active-drop"));
+      drag = null;
+      render();
     });
     bindInput(dispatch);
     loadBelt();

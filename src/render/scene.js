@@ -8,31 +8,37 @@ function art(artId, className = "", assetSet) {
   return icon;
 }
 
-function renderItems(items, showName) {
+function renderItems(items, level, state) {
   const layer = document.querySelector("#belt-item-layer");
   const existing = new Map(
     [...layer.querySelectorAll("[data-draggable-item]")].map((element) => [element.dataset.itemId, element]),
   );
   const nextElements = [];
   for (const currentItem of items) {
+    const showName = level.showNames && (!level.showNamesUntilSpawn || currentItem.spawnOrder <= level.showNamesUntilSpawn);
     let object = existing.get(String(currentItem.id));
     if (!object) {
       object = document.createElement("div");
       object.className = "game-item";
       object.dataset.draggableItem = "true";
       object.dataset.itemId = currentItem.id;
-      object.setAttribute("role", "img");
+      object.setAttribute("role", "button");
+      object.tabIndex = 0;
       object.setAttribute("aria-label", `Drag ${currentItem.name} to the correct box`);
       object.append(art(currentItem.art, "game-item__art", currentItem.assetSet));
-      if (showName) {
-        const name = document.createElement("span");
-        name.className = "game-item__name";
-        name.textContent = currentItem.name;
-        object.append(name);
-      }
+    }
+    let name = object.querySelector(".game-item__name");
+    if (showName && !name) {
+      name = document.createElement("span");
+      name.className = "game-item__name";
+      object.append(name);
+    }
+    if (name) {
+      name.textContent = currentItem.name;
+      name.hidden = !showName;
     }
     if (currentItem.beltState !== "dragging") {
-      object.className = "game-item";
+      object.className = `game-item${String(state.selectedItemId) === String(currentItem.id) ? " game-item--selected" : ""}`;
       object.style.top = "";
       object.style.bottom = "";
       object.style.pointerEvents = "";
@@ -40,6 +46,8 @@ function renderItems(items, showName) {
     // `x` is advanced by the shared conveyor controller. Keeping the value in
     // state means a harmless UI re-render cannot restart or desynchronise it.
     object.style.left = `${currentItem.x ?? -160}px`;
+    object.style.setProperty("--item-scale", String(currentItem.visualScale ?? 1));
+    object.style.setProperty("--item-rotation", `${currentItem.rotation ?? 0}deg`);
     nextElements.push(object);
   }
   layer.replaceChildren(...nextElements);
@@ -48,9 +56,10 @@ function renderItems(items, showName) {
 function createBin(bin, itemName, state) {
   const root = document.createElement("div");
   const hasBakedArtwork = bin.id === "long" || bin.id === "round";
-  root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${hasBakedArtwork ? " sorting-bin--baked" : " sorting-bin--dynamic"}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}`;
+  root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${hasBakedArtwork ? " sorting-bin--baked" : " sorting-bin--dynamic"}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}${state.hintCategory === bin.id ? " sorting-bin--hint" : ""}`;
   root.dataset.dropCategory = bin.id;
-  root.setAttribute("role", "group");
+  root.setAttribute("role", "button");
+  root.tabIndex = 0;
   root.setAttribute("aria-label", `${bin.label} sorting box`);
   
   // Invisible hit area slightly larger than visible box for easier dropping
@@ -93,8 +102,10 @@ function createBin(bin, itemName, state) {
 }
 
 export function renderScene(state, level) {
-  document.querySelector("#scene").dataset.level = state.level;
-  renderItems(state.completedLevel || state.screen === "complete" ? [] : state.activeItems, level.showNames);
+  const scene = document.querySelector("#scene");
+  scene.dataset.level = state.level;
+  scene.classList.toggle("scene--focused-hint", Boolean(state.hintCategory));
+  renderItems(state.completedLevel || state.screen === "complete" ? [] : state.activeItems, level, state);
   const root = document.querySelector("#sorting-bins");
   root.dataset.level = String(state.level);
   root.dataset.count = String(level.bins.length);

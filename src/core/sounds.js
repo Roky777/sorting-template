@@ -27,6 +27,10 @@ export function createSounds() {
 
   return {
     setMuted(value) { muted = value; },
+    pickup() {
+      const now = audioContext().currentTime;
+      tone(420, now, 0.075, { end: 610, volume: 0.025, type: "sine" });
+    },
     drop() {
       const now = audioContext().currentTime;
       tone(560, now, 0.11, { end: 330, volume: 0.045, type: "triangle" });
@@ -40,6 +44,11 @@ export function createSounds() {
     retry() {
       const now = audioContext().currentTime;
       tone(290, now, 0.12, { end: 210, volume: 0.035, type: "sine" });
+    },
+    milestone() {
+      const now = audioContext().currentTime;
+      tone(880, now, 0.09, { end: 1040, volume: 0.035, type: "sine" });
+      tone(1174, now + 0.075, 0.14, { end: 1320, volume: 0.04, type: "triangle" });
     },
   };
 }

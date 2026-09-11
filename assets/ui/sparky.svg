@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" role="img" aria-labelledby="title">
+  <title id="title">Sparky the friendly Shape Lab flame</title>
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff36a"/>
+      <stop offset=".48" stop-color="#ffb51e"/>
+      <stop offset="1" stop-color="#f36b1c"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffbd0"/>
+      <stop offset="1" stop-color="#ffd53e"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-25%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#763413" flood-opacity=".34"/>
+    </filter>
+  </defs>
+  <ellipse cx="120" cy="252" rx="68" ry="15" fill="#173f4b" opacity=".24"/>
+  <g filter="url(#shadow)" stroke="#7c3514" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 18c18 38 55 49 60 99 3 26-7 51-24 69-17 18-22 29-36 54-14-25-19-36-36-54-17-18-27-43-24-69 4-39 28-57 43-81 4 17 11 27 17 34 7-17 6-33 0-52z" fill="url(#body)" stroke-width="8"/>
+    <path d="M120 79c11 23 30 34 32 62 2 31-19 61-32 82-13-21-34-51-32-82 2-25 17-39 27-55 2 10 4 18 5 25 5-10 5-20 0-32z" fill="url(#inner)" stroke="#f58a1f" stroke-width="5"/>
+    <path d="M67 164c-20 4-30 14-38 27" fill="none" stroke-width="8"/>
+    <path d="M173 164c20 4 30 14 38 27" fill="none" stroke-width="8"/>
+    <circle cx="99" cy="145" r="8" fill="#183d4b" stroke="none"/>
+    <circle cx="141" cy="145" r="8" fill="#183d4b" stroke="none"/>
+    <circle cx="96" cy="142" r="2.5" fill="#fff" stroke="none"/>
+    <circle cx="138" cy="142" r="2.5" fill="#fff" stroke="none"/>
+    <path d="M101 166c11 11 27 11 38 0" fill="none" stroke="#7c3514" stroke-width="6"/>
+    <path d="M82 158c-8 1-13 4-17 8M158 158c8 1 13 4 17 8" fill="none" stroke="#ef6d52" stroke-width="5" opacity=".7"/>
+  </g>
+</svg>

@@ -1,10 +1,17 @@
+import { assets } from "../data/assets.js";
+
+function tutorialArt(level, artId) {
+  return assets.items.mathByLevel?.[level.assetSet]?.[artId] ?? assets.items.math[artId] ?? assets.items.math.ball;
+}
+
 export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");
   root.replaceChildren();
   if (state.screen === "complete") {
+    const accuracy = state.attempts ? Math.round((state.firstTryCorrect / state.attempts) * 100) : 100;
     const card = document.createElement("div");
-    card.className = "game-modal";
-    card.innerHTML = "<span class=\"game-modal__stars\">★★★</span><h2>Maths Master!</h2><p>You completed all nine Shape & Motion Sorter levels.</p>";
+    card.className = "game-modal game-certificate";
+    card.innerHTML = `<img class="game-certificate__mascot" src="assets/ui/sparky.svg" alt="Sparky celebrating"><small>Shape Lab Certificate</small><h2>Shape &amp; Motion Master</h2><p>You completed all nine learning levels.</p><div class="game-certificate__results"><strong>★ ${state.score}</strong><strong>${state.campaignStars} / 27 stars</strong><strong>${accuracy}% first try</strong></div><div class="game-certificate__stamps"><span>SHAPES</span><span>FAMILIES</span><span>MOTION</span></div>`;
     const restart = document.createElement("button");
     restart.className = "game-modal__button";
     restart.dataset.action = "restart";
@@ -17,16 +24,34 @@ export function renderGameUi(state, level) {
   prompt.className = "level-prompt";
   prompt.innerHTML = `<span>Level ${state.level} of 9</span><h1>${level.title}</h1><p>${level.instruction}</p>`;
   root.append(prompt);
+  if (state.introVisible) {
+    const tutorial = document.createElement("section");
+    tutorial.className = `tutorial-plaque${state.level >= 6 ? " tutorial-plaque--motion" : ""}`;
+    const cues = level.bins.map((bin) => `<span><img src="${tutorialArt(level, bin.art)}" alt=""><b>${bin.label}</b></span>`).join("");
+    tutorial.innerHTML = `<img class="tutorial-plaque__sparky" src="assets/ui/sparky.svg" alt="Sparky"><div class="tutorial-plaque__copy"><small>Level ${state.level}</small><strong>${level.title}</strong><p>${level.intro}</p></div><div class="tutorial-plaque__demo" aria-hidden="true">${cues}</div>`;
+    root.append(tutorial);
+  }
+  if (state.milestone) {
+    const milestone = document.createElement("div");
+    milestone.className = "milestone-pop";
+    milestone.innerHTML = `<span>★</span><strong>${state.milestone}% mastered</strong>`;
+    root.append(milestone);
+  }
   if (state.feedback && state.feedback.type !== "complete") {
     const feedback = document.createElement("div");
-    feedback.className = `feedback feedback--${state.feedback.type}`;
+    feedback.className = `feedback feedback--${state.feedback.type}${state.feedback.category ? ` feedback--bin-${state.feedback.category}` : ""}`;
     feedback.textContent = state.feedback.message;
+    if (state.feedback.category && state.feedback.type !== "wrong") {
+      const binIndex = level.bins.findIndex((bin) => bin.id === state.feedback.category);
+      const feedbackX = ((binIndex + 1) / (level.bins.length + 1)) * 100;
+      feedback.style.setProperty("--feedback-x", `${feedbackX}%`);
+    }
     root.append(feedback);
   }
   if (state.completedLevel) {
     const card = document.createElement("div");
     card.className = "game-modal";
-    card.innerHTML = `<span class=\"game-modal__stars\">${"★".repeat(state.stars)}${"☆".repeat(state.maxStars - state.stars)}</span><h2>${state.feedback.message}</h2><p>${state.correct} of ${level.items.length} sorted correctly</p>`;
+    card.innerHTML = `<img class="game-modal__mascot" src="assets/ui/sparky.svg" alt="Sparky cheering"><span class=\"game-modal__stars\">${"★".repeat(state.stars)}${"☆".repeat(state.maxStars - state.stars)}</span><h2>${state.feedback.message}</h2><p>${state.correct} successful sorts • +50 level bonus</p>`;
     const next = document.createElement("button");
     next.className = "game-modal__button";
     next.dataset.action = "next";

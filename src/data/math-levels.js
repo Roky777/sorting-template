@@ -117,13 +117,25 @@ const exactArt = {
   level9: { Football: "football", "Clay ball": "clayball", "Cardboard box": "cardboard", "Toy cylinder": "cylinder", "Cylindrical jar": "cylinder" },
 };
 
+const levelTuning = [
+  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 3, intro: "Drag the pencil to LONG and the ball to ROUND." },
+  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Look at each picture. The name tags are gone!", streakBonus: true },
+  { occupancyStart: 1, occupancyTarget: 3, occupancyRampAt: 2, intro: "Different objects can belong to the same shape family." },
+  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Compare the whole shape, not its color or use.", showNamesUntilSpawn: 10 },
+  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Three shape families are ready. Choose carefully.", trioBonus: true },
+  { occupancyStart: 1, occupancyTarget: 3, occupancyRampAt: 2, intro: "Round surfaces roll. Flat surfaces slide." },
+  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Picture challenge: decide without name tags.", streakBonus: true },
+  { occupancyStart: 1, occupancyTarget: 3, occupancyRampAt: 2, intro: "A cylinder can roll on its side and slide on its flat end.", showNamesUntilSpawn: 10, bothBonus: true },
+  { occupancyStart: 3, occupancyTarget: 3, occupancyRampAt: 0, intro: "Motion Master: sort every picture independently." },
+];
+
 // Every item carries its source art set.  Rendering stays reusable while the
 // assets follow the supplied Grade 1 Maths folder structure for Levels 1–9.
 export const MATH_LEVELS = LEVELS.map((level, index) => ({
   ...level,
+  ...levelTuning[index],
   assetSet: `level${index + 1}`,
   requiredCorrectPerItem: 2,
-  maxObjectsStart: [1, 2, 1, 2, 2, 1, 2, 1, 3][index],
   bins: level.bins.map((entry) => ({
     ...entry,
     art: index >= 7 && entry.id === "rolls" ? "football" : entry.art,
