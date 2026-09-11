@@ -11,17 +11,19 @@ body {
   place-items: center;
   width: 100%;
   min-height: 100dvh;
+  background: #65cbd8;
 }
 
 .rotate-notice { display: none; }
 
 .game-stage {
   position: relative;
-  width: min(100vw, 1600px, calc(100dvh * 16 / 9));
-  height: min(100dvh, calc(100vw * 9 / 16), 900px);
+  width: min(100vw, calc(100dvh * 16 / 9));
+  height: min(100dvh, calc(100vw * 9 / 16));
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #000;
+  container-type: size;
   isolation: isolate;
 }
 
@@ -112,7 +114,7 @@ body {
 }
 #belt-item-layer { position: absolute; z-index: 6; top: 50%; right: 0; left: 0; height: 22%; pointer-events: none; }
 /* The contact point is kept on the dark top plane, well above the front lip. */
-.game-item { position: absolute; z-index: 1; bottom: 39%; left: -10rem; display: grid; justify-items: center; width: clamp(4.9rem, 10vw, 9.25rem); cursor: grab; touch-action: none; user-select: none; pointer-events: auto; }
+.game-item { position: absolute; z-index: 1; bottom: 39%; left: -10rem; display: grid; justify-items: center; width: 10vw; width: 10cqw; cursor: grab; touch-action: none; user-select: none; pointer-events: auto; }
 .game-item--dragging { z-index: 8; cursor: grabbing; scale: 1.08; filter: brightness(1.06) drop-shadow(0 0 0.5rem rgb(176 239 247 / 56%)); transition: scale 120ms ease, filter 120ms ease; }
 .game-item--dragging::after { opacity: 0.2; }
 .math-art { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
@@ -129,9 +131,9 @@ body {
   overflow: hidden;
   border: 0;
   background: url("../assets/ui/conveyor-rims.png") center -31.6vw / 100% auto no-repeat;
+  background-position-y: -31.6cqw;
   animation: none !important;
   transform: none !important;
-  background-position: center -31.6vw;
   filter: brightness(0.84) saturate(0.78);
   box-shadow: 0 2px 3px rgb(0 0 0 / 22%);
 }
@@ -177,9 +179,11 @@ body {
   left: 0;
   display: flex;
   justify-content: center;
-  gap: clamp(1rem, 3vw, 3rem);
+  gap: 3vw;
+  gap: 3cqw;
   align-items: flex-end;
-  padding: 0 clamp(1rem, 3vw, 3rem);
+  padding: 0 3vw;
+  padding-inline: 3cqw;
 }
 .sorting-bin {
   flex: 0 1 auto;
@@ -208,10 +212,10 @@ body {
   pointer-events: auto;
   cursor: pointer;
 }
-.sorting-bins[data-count="2"] { gap: clamp(2rem, 5vw, 5.5rem); }
-.sorting-bins[data-count="2"] .sorting-bin { flex-basis: clamp(12rem, 23vw, 20.625rem); width: clamp(12rem, 23vw, 20.625rem); }
-.sorting-bins[data-count="3"] { gap: clamp(1rem, 2.4vw, 2.75rem); }
-.sorting-bins[data-count="3"] .sorting-bin { flex-basis: clamp(9rem, 18vw, 14.6875rem); width: clamp(9rem, 18vw, 14.6875rem); }
+.sorting-bins[data-count="2"] { gap: 5vw; gap: 5cqw; }
+.sorting-bins[data-count="2"] .sorting-bin { flex-basis: 23vw; flex-basis: 23cqw; width: 23vw; width: 23cqw; }
+.sorting-bins[data-count="3"] { gap: 2.4vw; gap: 2.4cqw; }
+.sorting-bins[data-count="3"] .sorting-bin { flex-basis: 18vw; flex-basis: 18cqw; width: 18vw; width: 18cqw; }
 
 /* Cardboard box image - single layer since artwork includes icon/label */
 .sorting-bin__image {
@@ -426,68 +430,6 @@ body {
 .game-modal p { margin: 0.3em 0 1em; font-size: clamp(0.85rem, 1.55vw, 1.2rem); font-weight: 700; }
 .game-modal__stars { color: #ffca1a; font-size: clamp(1.6rem, 4vw, 3.2rem); letter-spacing: 0.12em; }
 .game-modal__button { padding: 0.55em 1.25em; border: 0; border-radius: 999px; background: #ff8f1f; color: #fff; font: inherit; font-weight: 900; cursor: pointer; box-shadow: inset 0 -0.16em 0 rgb(189 82 15 / 45%); }
-
-/* Full-height touch layout: retain the same scene, but crop the background
-   naturally and move the playable station into the phone viewport. */
-@media (max-width: 1024px) {
-  .game-stage {
-    width: 100vw;
-    height: 100dvh;
-    max-height: none;
-    aspect-ratio: auto;
-  }
-  .factory-background { object-position: center center; }
-  .conveyor,
-  #belt-item-layer { top: 62%; height: 17%; }
-  .game-item { bottom: 35%; width: clamp(4.9rem, 20vw, 7rem); }
-  .sorting-bins {
-    gap: clamp(0.45rem, 2.5vw, 1.25rem);
-    padding: 0 max(0.45rem, env(safe-area-inset-right)) 0 max(0.45rem, env(safe-area-inset-left));
-  }
-  .sorting-bins[data-count="2"] .sorting-bin {
-    flex-basis: min(43vw, 18rem);
-    width: min(43vw, 18rem);
-  }
-  .sorting-bins[data-count="3"] {
-    gap: clamp(0.25rem, 1.2vw, 0.75rem);
-  }
-  .sorting-bins[data-count="3"] .sorting-bin {
-    flex-basis: min(31vw, 12.5rem);
-    width: min(31vw, 12.5rem);
-  }
-  .sorting-bin__category { inset: 25% 13% 2%; }
-  .sorting-bin__category-label { font-size: clamp(0.52rem, 2.45vw, 0.95rem); }
-  .hud {
-    grid-template-columns: 1fr auto;
-    align-content: start;
-    gap: 0.35rem 0.5rem;
-    padding: max(0.45rem, env(safe-area-inset-top)) max(0.55rem, env(safe-area-inset-right)) 0 max(0.55rem, env(safe-area-inset-left));
-  }
-  .hud__level { grid-column: 1; grid-row: 1; max-width: min(58vw, 16rem); }
-  .hud__score { grid-column: 2; grid-row: 1; align-self: start; }
-  .progress-card { grid-column: 1 / -1; grid-row: 2; }
-  .icon-button--sound { display: none; }
-  .feedback { top: 55%; }
-}
-
-@media (max-width: 480px) {
-  .hud__level span { font-size: 0.72rem; }
-  .hud__level small { max-width: 48vw; overflow: hidden; font-size: 0.54rem; text-overflow: ellipsis; }
-  .progress-card { padding: 0.28em 0.42em; }
-  .progress-card__track { height: 0.68rem; }
-  #mastery-text { font-size: 0.58rem; }
-}
-
-@media (max-width: 1024px) and (orientation: landscape) {
-  .conveyor,
-  #belt-item-layer { top: 33%; height: 18%; }
-  .sorting-bins[data-count="2"] .sorting-bin { flex-basis: min(30vw, 16.5rem); width: min(30vw, 16.5rem); }
-  .sorting-bins[data-count="3"] .sorting-bin { flex-basis: min(29vw, 13rem); width: min(29vw, 13rem); }
-  .hud { grid-template-columns: minmax(7rem, 0.8fr) minmax(12rem, 2fr) auto; }
-  .hud__level { grid-column: auto; grid-row: auto; }
-  .hud__score { grid-column: auto; grid-row: auto; }
-  .progress-card { grid-column: auto; grid-row: auto; }
-}
 
 @media (max-width: 1024px) and (orientation: portrait) {
   .game-stage { visibility: hidden; }
