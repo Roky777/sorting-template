@@ -17,6 +17,7 @@ export function createGame() {
   const level = () => getLevel(state.levelIndex);
   const ENTRY_GAP = 28;
   const DEFAULT_ITEM_WIDTH = 145;
+  const MISS_PENALTY = 5;
 
   const itemKey = (item) => item.name;
   const activeKeys = () => new Set(state.activeItems.map(itemKey));
@@ -50,25 +51,53 @@ export function createGame() {
   function advanceItems({ detail }) {
     if (state.paused || state.completedLevel || !detail?.dx) return;
     const itemWidth = Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, detail.width * 0.1));
-    const decisionX = Math.max(itemWidth, detail.width - itemWidth - 24);
     const moving = state.activeItems
-      .filter((item) => item.beltState !== "dragging" && item.beltState !== "sorting")
+      .filter((item) => item.beltState === "moving")
       .sort((a, b) => (b.x ?? -itemWidth) - (a.x ?? -itemWidth));
 
     let itemAhead;
     for (const item of moving) {
       item.width = itemWidth;
       if (!Number.isFinite(item.x)) item.x = -itemWidth - ENTRY_GAP;
-      let nextX = Math.min(item.x + detail.dx, decisionX);
+      let nextX = item.x + detail.dx;
       if (itemAhead) {
         const minimumGap = (item.width + itemAhead.width) / 2 + ENTRY_GAP;
         nextX = Math.min(nextX, itemAhead.x - minimumGap);
       }
       item.x = Math.max(-itemWidth - ENTRY_GAP, nextX);
-      item.beltState = item.x >= decisionX - 0.5 ? "waiting" : "moving";
       syncItemPosition(item);
       itemAhead = item;
     }
+
+    const missed = moving.filter((item) => item.x > detail.width + item.width);
+    if (missed.length) handleMissedItems(missed);
+  }
+
+  function handleMissedItems(missedItems) {
+    const missedIds = new Set(missedItems.map((item) => item.id));
+    state.activeItems = state.activeItems.filter((item) => !missedIds.has(item.id));
+    for (const missedItem of missedItems) {
+      state.mastery[itemKey(missedItem)].wrong += 1;
+      state.weakItemQueue.push({
+        item: missedItem,
+        readyAt: state.spawnCount + 2 + Math.floor(Math.random() * 4),
+      });
+    }
+    state.score -= MISS_PENALTY * missedItems.length;
+    state.feedback = {
+      type: "missed",
+      message: missedItems.length > 1 ? `Missed ${missedItems.length}! −${MISS_PENALTY * missedItems.length}` : `Missed! −${MISS_PENALTY}`,
+    };
+    sounds.retry();
+    render();
+    window.clearTimeout(feedbackTimer);
+    feedbackTimer = window.setTimeout(() => {
+      if (state.feedback?.type === "missed") {
+        state.feedback = null;
+        render();
+      }
+    }, 520);
+    ensureBeltPopulation();
   }
 
   function refillBag() {
@@ -107,7 +136,7 @@ export function createGame() {
     if (spawnTimer) return;
     spawnTimer = window.setTimeout(() => {
       spawnTimer = undefined;
-      if (state.paused || state.completedLevel || state.placed) return;
+      if (state.paused || state.completedLevel) return;
       if (state.activeItems.length >= maxOnBelt()) return;
       // Never place a new card on top of one that is still entering the lane.
       if (!entryIsClear()) return scheduleSpawn(220 + Math.random() * 120);
@@ -133,7 +162,7 @@ export function createGame() {
   }
 
   function ensureBeltPopulation() {
-    if (state.paused || state.completedLevel || state.placed || state.feedback) return;
+    if (state.paused || state.completedLevel) return;
     if (state.activeItems.length < minOnBelt()) scheduleSpawn(120);
     else if (state.activeItems.length < maxOnBelt()) scheduleSpawn(520 + Math.random() * 280);
   }
@@ -167,7 +196,7 @@ export function createGame() {
 
   function choose(itemId, category) {
     const activeItem = state.activeItems.find((candidate) => String(candidate.id) === String(itemId));
-    if (state.paused || state.completedLevel || state.feedback || state.placed || !activeItem) return;
+    if (state.paused || state.completedLevel || state.placed || !activeItem) return;
     const correct = activeItem.answer === category;
     if (correct) {
       const mastery = state.mastery[itemKey(activeItem)];
@@ -183,6 +212,7 @@ export function createGame() {
       // The dropped item is now owned by the short bin animation, not the belt.
       render();
       sounds.drop();
+      ensureBeltPopulation();
       window.clearTimeout(advanceTimer);
       window.clearTimeout(feedbackTimer);
       advanceTimer = window.setTimeout(() => {
@@ -197,7 +227,7 @@ export function createGame() {
           render();
           ensureBeltPopulation();
         }, 280);
-      }, 410);
+      }, 260);
       return;
     }
     state.mastery[itemKey(activeItem)].wrong += 1;
@@ -207,13 +237,15 @@ export function createGame() {
     state.feedback = { type: "wrong", message: "Try again!", category };
     sounds.retry();
     render();
-    window.clearTimeout(advanceTimer);
-    advanceTimer = window.setTimeout(() => {
-      state.feedback = null;
-      activeItem.beltState = "moving";
+    const returnLevel = state.levelIndex;
+    window.setTimeout(() => {
+      const returningItem = state.activeItems.find((item) => item.id === activeItem.id);
+      if (state.levelIndex !== returnLevel || !returningItem) return;
+      if (state.feedback?.type === "wrong") state.feedback = null;
+      returningItem.beltState = "moving";
       render();
       ensureBeltPopulation();
-    }, 600);
+    }, 320);
   }
 
   function nextLevel() {
@@ -274,7 +306,7 @@ export function createGame() {
     });
     document.addEventListener("pointerdown", (event) => {
       const target = event.target.closest("[data-draggable-item]");
-      if (!target || state.paused || state.completedLevel || state.feedback || state.placed) return;
+      if (!target || state.paused || state.completedLevel || state.placed) return;
       const layer = document.querySelector("#belt-item-layer");
       const bounds = layer.getBoundingClientRect();
       const itemBounds = target.getBoundingClientRect();

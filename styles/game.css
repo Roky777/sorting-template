@@ -284,7 +284,7 @@ body {
   width: 70%;
   height: 60%;
   object-fit: contain;
-  animation: item-drop 0.4s cubic-bezier(.2,.78,.3,1) both;
+  animation: item-drop 0.26s cubic-bezier(.2,.78,.3,1) both;
 }
 
 /* Hover effects */
@@ -425,6 +425,7 @@ body {
 .feedback { position: absolute; top: 45%; left: 50%; padding: 0.35em 0.9em; border-radius: 999px; transform: translateX(-50%); color: #fff; font-size: clamp(1rem, 2.1vw, 1.8rem); font-weight: 900; box-shadow: 0 0.22vw 0 rgb(20 49 83 / 30%); }
 .feedback--correct { background: #18a85e; }
 .feedback--wrong { background: #f04d54; }
+.feedback--missed { background: #d96b25; }
 .game-modal { position: absolute; top: 50%; left: 50%; width: min(78%, 28rem); padding: clamp(1.1rem, 3vw, 2.5rem); border: 0.35vw solid #fff; border-radius: 1.7rem; transform: translate(-50%, -50%); background: #e8fbff; color: #15506b; text-align: center; box-shadow: 0 0 0 0.35vw #70ddea, 0 0.8vw 1.2vw rgb(5 63 85 / 36%); pointer-events: auto; }
 .game-modal h2 { margin: 0.12em 0; font-size: clamp(1.5rem, 3.2vw, 2.7rem); }
 .game-modal p { margin: 0.3em 0 1em; font-size: clamp(0.85rem, 1.55vw, 1.2rem); font-weight: 700; }

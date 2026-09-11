@@ -10,26 +10,39 @@ function art(artId, className = "", assetSet) {
 
 function renderItems(items, showName) {
   const layer = document.querySelector("#belt-item-layer");
-  layer.replaceChildren();
+  const existing = new Map(
+    [...layer.querySelectorAll("[data-draggable-item]")].map((element) => [element.dataset.itemId, element]),
+  );
+  const nextElements = [];
   for (const currentItem of items) {
-    const object = document.createElement("div");
-    object.className = "game-item";
-    object.dataset.draggableItem = "true";
-    object.dataset.itemId = currentItem.id;
+    let object = existing.get(String(currentItem.id));
+    if (!object) {
+      object = document.createElement("div");
+      object.className = "game-item";
+      object.dataset.draggableItem = "true";
+      object.dataset.itemId = currentItem.id;
+      object.setAttribute("role", "img");
+      object.setAttribute("aria-label", `Drag ${currentItem.name} to the correct box`);
+      object.append(art(currentItem.art, "game-item__art", currentItem.assetSet));
+      if (showName) {
+        const name = document.createElement("span");
+        name.className = "game-item__name";
+        name.textContent = currentItem.name;
+        object.append(name);
+      }
+    }
+    if (currentItem.beltState !== "dragging") {
+      object.className = "game-item";
+      object.style.top = "";
+      object.style.bottom = "";
+      object.style.pointerEvents = "";
+    }
     // `x` is advanced by the shared conveyor controller. Keeping the value in
     // state means a harmless UI re-render cannot restart or desynchronise it.
     object.style.left = `${currentItem.x ?? -160}px`;
-    object.setAttribute("role", "img");
-    object.setAttribute("aria-label", `Drag ${currentItem.name} to the correct box`);
-    object.append(art(currentItem.art, "game-item__art", currentItem.assetSet));
-    if (showName) {
-      const name = document.createElement("span");
-      name.className = "game-item__name";
-      name.textContent = currentItem.name;
-      object.append(name);
-    }
-    layer.append(object);
+    nextElements.push(object);
   }
+  layer.replaceChildren(...nextElements);
 }
 
 function createBin(bin, itemName, state) {
