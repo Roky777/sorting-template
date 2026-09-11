@@ -29,10 +29,13 @@ export function createGame() {
     return bag;
   };
   const maxOnBelt = () => {
-    // Outside an explicit tutorial, a live conveyor settles at three objects.
-    return 3;
+    const start = level().maxObjectsStart ?? 2;
+    const progress = state.totalRequired ? state.completedMastery / state.totalRequired : 0;
+    if (progress >= 0.42) return 3;
+    if (progress >= 0.14) return Math.max(2, start);
+    return start;
   };
-  const minOnBelt = () => 2;
+  const minOnBelt = () => Math.min(2, maxOnBelt());
 
   function entryIsClear() {
     const entryBoundary = DEFAULT_ITEM_WIDTH + ENTRY_GAP;

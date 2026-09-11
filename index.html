@@ -9,6 +9,11 @@
   </head>
   <body>
     <main class="game-shell" aria-label="Brain Match game">
+      <aside class="rotate-notice" aria-label="Landscape orientation required">
+        <span class="rotate-notice__phone" aria-hidden="true"></span>
+        <strong>Turn your device sideways</strong>
+        <small>This game is made for landscape play.</small>
+      </aside>
       <section id="game-stage" class="game-stage" aria-live="polite">
         <div id="scene" class="scene scene--placeholder" aria-label="Game scene">
           <img class="factory-background" src="assets/backgrounds/shape-lab-factory.png" alt="" />
@@ -32,7 +37,7 @@
 
         <header class="hud" aria-label="Game status and controls">
           <div class="hud__level"><span id="level-icon">Level 1 / 9</span><small id="level-title">Long or Round</small></div>
-          <div class="progress-card" aria-label="Mastery progress"><div class="progress-card__track"><span id="mastery-fill"></span></div><span id="mastery-text">0 / 20</span></div>
+          <div class="progress-card" aria-label="Mastery progress"><div class="progress-card__track" role="progressbar" aria-label="Level mastery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="mastery-fill"></span></div><span id="mastery-text">Start!</span></div>
           <div id="score-card" class="hud__score" aria-label="Score">★ 0</div>
           <button id="sound-button" class="icon-button icon-button--sound" type="button" aria-label="Toggle sound">♪</button>
         </header>

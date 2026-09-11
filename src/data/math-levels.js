@@ -3,7 +3,7 @@ const item = (name, art, answer) => ({ name, art, answer });
 const shapeIcons = {
   long: "pencil",
   round: "ball",
-  ball: "ball",
+  ball: "football",
   box: "matchbox",
   cap: "cap",
   glass: "glass",
@@ -89,7 +89,7 @@ const LEVELS = [
     title: "Roll, Slide or Both",
     instruction: "Can it roll, slide, or do both?",
     showNames: true,
-    bins: bins([["rolls", "Rolls"], ["slides", "Slides"], ["both", "Both"]]),
+    bins: bins([["rolls", "Rolls"], ["both", "Both"], ["slides", "Slides"]]),
     items: [
       item("Ball", "ball", "rolls"), item("Orange", "orange", "rolls"), item("Marble", "marble", "rolls"), item("Book", "book", "slides"), item("Matchbox", "matchbox", "slides"),
       item("Pencil box", "pencilbox", "slides"), item("Water bottle", "bottle", "both"), item("Tin can", "can", "both"), item("Toy cylinder", "can", "both"), item("Cylinder", "bottle", "both"),
@@ -99,7 +99,7 @@ const LEVELS = [
     title: "Motion Master",
     instruction: "Use everything you know about movement!",
     showNames: false,
-    bins: bins([["rolls", "Rolls"], ["slides", "Slides"], ["both", "Both"]]),
+    bins: bins([["rolls", "Rolls"], ["both", "Both"], ["slides", "Slides"]]),
     items: [
       item("Football", "ball", "rolls"), item("Orange", "orange", "rolls"), item("Clay ball", "marble", "rolls"), item("Book", "book", "slides"), item("Matchbox", "matchbox", "slides"),
       item("Cardboard box", "matchbox", "slides"), item("Water bottle", "bottle", "both"), item("Tin can", "can", "both"), item("Toy cylinder", "can", "both"), item("Cylindrical jar", "bottle", "both"),
@@ -124,6 +124,11 @@ export const MATH_LEVELS = LEVELS.map((level, index) => ({
   assetSet: `level${index + 1}`,
   requiredCorrectPerItem: 2,
   maxObjectsStart: [1, 2, 1, 2, 2, 1, 2, 1, 3][index],
+  bins: level.bins.map((entry) => ({
+    ...entry,
+    art: index >= 7 && entry.id === "rolls" ? "football" : entry.art,
+    assetSet: `level${index + 1}`,
+  })),
   items: level.items.map((entry) => ({
     ...entry,
     art: exactArt[`level${index + 1}`]?.[entry.name] ?? entry.art,

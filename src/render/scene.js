@@ -34,7 +34,8 @@ function renderItems(items, showName) {
 
 function createBin(bin, itemName, state) {
   const root = document.createElement("div");
-  root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}`;
+  const hasBakedArtwork = bin.id === "long" || bin.id === "round";
+  root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${hasBakedArtwork ? " sorting-bin--baked" : " sorting-bin--dynamic"}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}`;
   root.dataset.dropCategory = bin.id;
   root.setAttribute("role", "group");
   root.setAttribute("aria-label", `${bin.label} sorting box`);
@@ -46,7 +47,7 @@ function createBin(bin, itemName, state) {
   
   // Use cardboard box image based on bin type
   // The provided artwork includes the icon and label baked in.
-  const boxImageSrc = bin.id === "long" ? assets.items.cardboardBoxLong : assets.items.cardboardBoxRound;
+  const boxImageSrc = bin.id === "round" ? assets.items.cardboardBoxRound : assets.items.cardboardBoxLong;
   
   // Main box image
   const boxImage = document.createElement("img");
@@ -54,6 +55,17 @@ function createBin(bin, itemName, state) {
   boxImage.src = boxImageSrc;
   boxImage.alt = "";
   root.append(boxImage);
+
+  if (!hasBakedArtwork) {
+    const category = document.createElement("div");
+    category.className = "sorting-bin__category";
+    category.append(art(bin.art, "sorting-bin__category-icon", bin.assetSet));
+    const label = document.createElement("strong");
+    label.className = "sorting-bin__category-label";
+    label.textContent = bin.label.toUpperCase();
+    category.append(label);
+    root.append(category);
+  }
   
   if (state.placed?.category === bin.id) {
     // Drop mask for the animation of item entering the box
@@ -71,6 +83,7 @@ export function renderScene(state, level) {
   document.querySelector("#scene").dataset.level = state.level;
   renderItems(state.completedLevel || state.screen === "complete" ? [] : state.activeItems, level.showNames);
   const root = document.querySelector("#sorting-bins");
+  root.dataset.level = String(state.level);
   root.dataset.count = String(level.bins.length);
   root.replaceChildren(...level.bins.map((bin) => createBin(bin, "item", state)));
 }
