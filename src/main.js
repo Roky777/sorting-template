@@ -13,6 +13,7 @@ const startScreen = document.querySelector("#start-screen");
 document.querySelector("#start-button").addEventListener("click", () => {
   if (started) return;
   started = true;
+  game.enableAudio();
   startScreen.classList.add("start-screen--leaving");
   window.setTimeout(() => {
     startScreen.hidden = true;

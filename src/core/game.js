@@ -100,6 +100,7 @@ export function createGame() {
     state.levelAttempts += missedItems.length;
     state.correctStreak = 0;
     state.score -= MISS_PENALTY * missedItems.length;
+    state.levelScore -= MISS_PENALTY * missedItems.length;
     state.feedback = {
       type: "missed",
       message: missedItems.length > 1 ? `Missed ${missedItems.length}! −${MISS_PENALTY * missedItems.length}` : `Missed! −${MISS_PENALTY}`,
@@ -211,6 +212,7 @@ export function createGame() {
     state.lastCorrectByCategory = {};
     state.levelAttempts = 0;
     state.levelFirstTryCorrect = 0;
+    state.levelScore = 0;
     state.hintCategory = null;
     scheduleSpawn(550);
   }
@@ -224,13 +226,14 @@ export function createGame() {
   function finishLevel() {
     if (state.completedLevel) return;
     state.activeItems = [];
-    state.score += 50;
-    const accuracy = state.levelAttempts ? state.levelFirstTryCorrect / state.levelAttempts : 1;
-    state.stars = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : 1;
+    const starBaseline = state.totalRequired * 10 + Math.floor(state.totalRequired / 5) * 5;
+    const starRatio = starBaseline ? state.levelScore / starBaseline : 1;
+    state.stars = starRatio >= 0.8 ? 3 : starRatio >= 0.45 ? 2 : 1;
     state.campaignStars += state.stars;
     state.completedLevel = true;
     state.feedback = { type: "complete", message: "Wonderful sorting!" };
     render();
+    sounds.complete(state.stars);
   }
 
   function choose(itemId, category) {
@@ -242,7 +245,7 @@ export function createGame() {
       const wasMastered = mastery.correct >= level().requiredCorrectPerItem;
       const beforeProgress = state.totalRequired ? state.completedMastery / state.totalRequired : 0;
       const firstTry = mastery.mistakesSinceCorrect === 0;
-      const points = firstTry ? 10 : 7;
+      const points = 10;
       mastery.correct += 1;
       mastery.mistakesSinceCorrect = 0;
       state.completedMastery = Math.min(state.totalRequired, state.completedMastery + 1);
@@ -251,27 +254,13 @@ export function createGame() {
       if (firstTry) {
         state.firstTryCorrect += 1;
         state.levelFirstTryCorrect += 1;
-        state.correctStreak += 1;
-      } else {
-        state.correctStreak = 0;
       }
+      state.correctStreak += 1;
       let bonus = 0;
       let rewardTitle;
       const newlyMastered = !wasMastered && mastery.correct === level().requiredCorrectPerItem;
-      if (newlyMastered) bonus += 15;
-      if (level().streakBonus && state.correctStreak >= 3 && !state.specialRewards.includes("streak")) {
-        state.specialRewards.push("streak");
-        bonus += 5;
-      }
-      if (level().bothBonus && activeItem.answer === "both" && !state.specialRewards.includes("both")) {
-        state.specialRewards.push("both");
-        bonus += 5;
-      }
+      if (state.correctStreak % 5 === 0) bonus = 5;
       if (!state.sortedCategories.includes(activeItem.answer)) state.sortedCategories.push(activeItem.answer);
-      if (level().trioBonus && state.sortedCategories.length === 3 && !state.specialRewards.includes("trio")) {
-        state.specialRewards.push("trio");
-        bonus += 5;
-      }
       const previousInCategory = state.lastCorrectByCategory[activeItem.answer];
       if (state.levelIndex === 2 && previousInCategory && previousInCategory !== activeItem.name && !state.specialRewards.includes("family-insight")) {
         state.specialRewards.push("family-insight");
@@ -283,6 +272,7 @@ export function createGame() {
       }
       state.lastCorrectByCategory[activeItem.answer] = activeItem.name;
       state.score += points + bonus;
+      state.levelScore += points + bonus;
       state.correct += 1;
       state.placed = { art: activeItem.art, assetSet: activeItem.assetSet, category };
       state.selectedItemId = null;
@@ -326,6 +316,7 @@ export function createGame() {
     state.levelAttempts += 1;
     state.correctStreak = 0;
     state.score -= 10;
+    state.levelScore -= 10;
     // A wrong item snaps back onto the moving belt immediately. Pausing it here
     // would let following objects catch up and visually form a stack.
     activeItem.beltState = "moving";
@@ -385,6 +376,22 @@ export function createGame() {
     render();
   }
 
+  function retryLevel() {
+    window.clearTimeout(advanceTimer);
+    window.clearTimeout(feedbackTimer);
+    window.clearTimeout(spawnTimer);
+    spawnTimer = undefined;
+    state.score -= state.levelScore;
+    state.correct = Math.max(0, state.correct - state.completedMastery);
+    state.campaignStars = Math.max(0, state.campaignStars - state.stars);
+    state.stars = 0;
+    state.feedback = null;
+    state.placed = null;
+    state.completedLevel = false;
+    loadBelt();
+    render();
+  }
+
   function dispatch(action) {
     if (typeof action === "string") {
       if (action === "pause") state.paused = !state.paused;
@@ -393,6 +400,7 @@ export function createGame() {
     }
     if (action.type === "sort") choose(action.category);
     if (action.type === "next") nextLevel();
+    if (action.type === "retry-level") retryLevel();
     if (action.type === "restart") restart();
   }
 
@@ -409,6 +417,7 @@ export function createGame() {
       const button = event.target.closest("[data-action]");
       if (!button) return;
       if (button.dataset.action === "next") dispatch({ type: "next" });
+      if (button.dataset.action === "retry-level") dispatch({ type: "retry-level" });
       if (button.dataset.action === "restart") dispatch({ type: "restart" });
     });
     document.addEventListener("keydown", (event) => {
@@ -496,5 +505,9 @@ export function createGame() {
     render();
   }
 
-  return { start, dispatch, state };
+  function enableAudio() {
+    sounds.startMusic();
+  }
+
+  return { start, dispatch, state, enableAudio };
 }

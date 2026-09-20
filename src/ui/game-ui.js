@@ -1,5 +1,6 @@
 export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");
+  root.classList.toggle("game-ui--success", state.completedLevel);
   root.replaceChildren();
   if (state.screen === "complete") {
     const accuracy = state.attempts ? Math.round((state.firstTryCorrect / state.attempts) * 100) : 100;
@@ -30,15 +31,36 @@ export function renderGameUi(state, level) {
     root.append(feedback);
   }
   if (state.completedLevel) {
-    const card = document.createElement("div");
-    card.className = "game-modal";
-    card.innerHTML = `<span class=\"game-modal__stars\">${"★".repeat(state.stars)}${"☆".repeat(state.maxStars - state.stars)}</span><h2>${state.feedback.message}</h2><p>${state.correct} successful sorts • +50 level bonus</p>`;
+    const starSlots = state.stars === 1 ? [2] : state.stars === 2 ? [1, 3] : [1, 2, 3];
+    const success = document.createElement("section");
+    success.className = "success-screen";
+    success.setAttribute("aria-label", `Level complete. ${state.stars} out of 3 stars.`);
+    success.innerHTML = `
+      <img class="success-screen__background" src="assets/ui/start-background.png" alt="" />
+      <img class="success-screen__mascot" src="assets/ui/1ed7effe2a9a9491769691f9df97b9b8a25a4021.png" alt="Sparky celebrating" />
+      <img class="success-screen__title" src="assets/ui/image 18.png" alt="All sorted! Great job!" />
+      <div class="success-screen__stars" aria-hidden="true">
+        ${starSlots.map((slot, index) => `<span class="success-star success-star--${slot}" style="--star-index:${index}"><img src="assets/ui/image 19.png" alt="" /></span>`).join("")}
+        ${state.stars === 3 ? '<img class="success-stars__complete" src="assets/ui/image 19.png" alt="" />' : ""}
+      </div>
+      <p class="success-screen__score">Score: ${state.levelScore}</p>
+      <div class="success-screen__actions"></div>`;
+    const actions = success.querySelector(".success-screen__actions");
+    const starBaseline = state.totalRequired * 10 + Math.floor(state.totalRequired / 5) * 5;
+    if (state.levelScore < starBaseline * 0.45) {
+      const retry = document.createElement("button");
+      retry.className = "success-screen__button success-screen__button--secondary";
+      retry.dataset.action = "retry-level";
+      retry.textContent = "Try Again";
+      actions.append(retry);
+    }
     const next = document.createElement("button");
-    next.className = "game-modal__button";
+    next.className = "success-screen__button";
     next.dataset.action = "next";
-    next.textContent = state.level === 9 ? "See Results" : "Next Level";
-    card.append(next);
-    root.append(card);
+    next.textContent = state.level === 9 ? "Finish" : "Next Level";
+    actions.append(next);
+    root.append(success);
+    return;
   }
   if (state.paused) {
     const pause = document.createElement("div");
