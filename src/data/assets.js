@@ -47,6 +47,17 @@ export const assets = {
   ui: {
     conveyorFrame: "assets/ui/conveyor-frame.png",
     conveyorTrackMask: "assets/ui/conveyor-track.png",
+    sortingBins: {
+      long: "assets/ui/long-sort-bin.png",
+      round: "assets/ui/round-sort-bin.png",
+      ball: "assets/ui/ball-like-sort-bin.png",
+      box: "assets/ui/box-like-sort-bin.png",
+      cap: "assets/ui/cap-like-sort-bin.png",
+      glass: "assets/ui/glass-like-sort-bin.png",
+      rolls: "assets/ui/rolls-sort-bin.png",
+      slides: "assets/ui/slides-sort-bin.png",
+      both: "assets/ui/both-sort-bin.png",
+    },
   },
   audio: {},
   fx: {},

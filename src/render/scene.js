@@ -60,12 +60,20 @@ function createBin(bin, itemName, state) {
   root.setAttribute("role", "button");
   root.tabIndex = 0;
   root.setAttribute("aria-label", `${bin.label} sorting box`);
-  
+
   // Invisible hit area slightly larger than visible box for easier dropping
   const hitArea = document.createElement("div");
   hitArea.className = "sorting-bin__hit-area";
   root.append(hitArea);
   
+  // Every category uses its own complete, finished box artwork. Level 1 keeps
+  // the original approved LONG and ROUND assets unchanged.
+  const boxImage = document.createElement("img");
+  boxImage.className = "sorting-bin__image";
+  boxImage.src = assets.ui.sortingBins[bin.id] ?? assets.ui.sortingBins.long;
+  boxImage.alt = "";
+  root.append(boxImage);
+
   if (state.placed?.category === bin.id) {
     // Drop mask for the animation of item entering the box
     // Positioned to match the opening of the cardboard box in the artwork
@@ -74,21 +82,6 @@ function createBin(bin, itemName, state) {
     dropMask.append(art(state.placed.art, "sorting-bin__dropped-item", state.placed.assetSet));
     root.append(dropMask);
   }
-
-  const shell = document.createElement("div");
-  shell.className = "sorting-bin__shell";
-  shell.innerHTML = '<span class="sorting-bin__opening"></span><span class="sorting-bin__flap sorting-bin__flap--left"></span><span class="sorting-bin__flap sorting-bin__flap--right"></span>';
-  const front = document.createElement("div");
-  front.className = "sorting-bin__front";
-  const iconCircle = document.createElement("div");
-  iconCircle.className = "sorting-bin__icon-circle";
-  iconCircle.append(art(bin.art, "sorting-bin__category-icon", bin.assetSet));
-  const label = document.createElement("strong");
-  label.className = "sorting-bin__category-label";
-  label.textContent = bin.label.toUpperCase();
-  front.append(iconCircle, label);
-  shell.append(front);
-  root.append(shell);
   
   return root;
 }

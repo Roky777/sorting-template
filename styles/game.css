@@ -220,95 +220,28 @@ body {
 .sorting-bins[data-count="3"] { gap: 2.4vw; gap: 2.4cqw; }
 .sorting-bins[data-count="3"] .sorting-bin { flex-basis: 18vw; flex-basis: 18cqw; width: 18vw; width: 18cqw; }
 
-/* One complete reusable box for every category. Only the icon and text vary. */
-.sorting-bin__shell {
+/* Cardboard box image - single layer since artwork includes icon/label */
+.sorting-bin__image {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   z-index: 1;
   pointer-events: none;
   transition: filter 160ms ease, transform 160ms ease;
-}
-.sorting-bin__opening {
-  position: absolute;
-  z-index: 1;
-  top: 3%;
-  left: 12%;
-  width: 76%;
-  height: 29%;
-  border: clamp(3px, .42cqw, 7px) solid #ffd07d;
-  border-radius: 10% 10% 5% 5%;
-  background: linear-gradient(155deg, #8f3413, #c3531d 48%, #7c280f);
-  box-shadow: inset 0 .22rem .45rem rgb(75 20 3 / 48%), 0 .08rem 0 #b84d19;
-}
-.sorting-bin__flap {
-  position: absolute;
-  z-index: 2;
-  top: 5%;
-  width: 20%;
-  height: 35%;
-  border: clamp(2px, .25cqw, 4px) solid #d76820;
-  border-radius: 16%;
-  background: linear-gradient(145deg, #ffc66a, #f18a2e);
-  box-shadow: inset .12rem .12rem 0 rgb(255 226 157 / 58%);
-}
-.sorting-bin__flap--left { left: 0; transform: skewY(-23deg) rotate(-7deg); }
-.sorting-bin__flap--right { right: 0; transform: skewY(23deg) rotate(7deg); }
-.sorting-bin__front {
-  position: absolute;
-  z-index: 3;
-  inset: 22% 4% 1%;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  place-items: center;
-  padding: 3% 16% 5%;
-  border: clamp(2px, .28cqw, 5px) solid #d96821;
-  border-radius: 5% 5% 8% 8%;
-  background:
-    linear-gradient(145deg, rgb(255 227 160 / 33%) 0 29%, transparent 30%),
-    linear-gradient(180deg, #ffb14b, #f88429 62%, #eb641b);
-  box-shadow: inset 0 .16rem 0 rgb(255 226 151 / 72%), inset 0 -.16rem 0 rgb(183 68 17 / 25%);
-}
-.sorting-bin__icon-circle {
-  display: grid;
-  place-items: center;
-  width: 54%;
-  aspect-ratio: 1;
-  min-height: 0;
-  border: clamp(2px, .24cqw, 4px) solid #df7a32;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #fffdf1, #fff1c9);
-  box-shadow: 0 .12rem .18rem rgb(118 49 12 / 24%);
-}
-.sorting-bin__category-icon {
-  width: 72%;
-  height: 72%;
-  min-height: 0;
-  object-fit: contain;
-  filter: drop-shadow(0 0.13em 0.08em rgb(111 45 8 / 30%));
-}
-.sorting-bin__category-label {
-  width: 100%;
-  padding: .22em .35em;
-  border: clamp(2px, .18cqw, 3px) solid #d67b37;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #fffdf1, #ffeec8);
-  color: #6b2d12;
-  font-size: clamp(0.62rem, 1.45vw, 1.15rem);
-  font-weight: 1000;
-  line-height: 1;
-  text-align: center;
-  text-shadow: 0 .05em 0 #fff;
-  white-space: nowrap;
 }
 
 /* Drop mask for items entering the box - positioned over the box opening */
 .sorting-bin__drop-mask {
   position: absolute;
-  z-index: 2;
-  top: 3%;
-  left: 12%;
-  width: 76%;
-  height: 42%;
+  /* The full illustrated bin is the front wall, so the item remains behind it. */
+  z-index: 0;
+  /* Adjust these values to match the opening in the provided artwork */
+  top: 12%;
+  left: 18%;
+  width: 64%;
+  height: 35%;
   overflow: hidden;
   pointer-events: none;
 }
@@ -323,19 +256,19 @@ body {
 }
 
 /* Hover effects */
-.sorting-bin:hover .sorting-bin__shell,
-.sorting-bin--active-drop .sorting-bin__shell {
+.sorting-bin:hover .sorting-bin__image,
+.sorting-bin--active-drop .sorting-bin__image {
   filter: brightness(1.08);
   transform: scale(1.02);
 }
 
 /* Wrong drop shake */
-.sorting-bin--shake .sorting-bin__shell {
+.sorting-bin--shake .sorting-bin__image {
   animation: bin-shake 0.48s ease-in-out;
 }
 
 /* Correct drop receive */
-.sorting-bin--receiving .sorting-bin__shell {
+.sorting-bin--receiving .sorting-bin__image {
   animation: bin-receive 0.34s cubic-bezier(.2,.85,.35,1) both;
 }
 
@@ -344,33 +277,16 @@ body {
   transform: scale(1.02);
   filter: drop-shadow(0 0.35vw 0.3vw rgb(0 0 0 / 32%)) brightness(1.05);
 }
-.sorting-bin:hover .sorting-bin__front {
-  filter: brightness(1.08);
-}
-.sorting-bin:hover .sorting-bin__icon-circle {
-  box-shadow: 0 0.2vw 0.25vw rgb(0 0 0 / 18%);
-}
-
 /* Active drop state */
 .sorting-bin--active-drop {
   transform: translateY(-1.5%) scale(1.03);
   filter: drop-shadow(0 0 0.6rem rgb(255 200 100 / 50%)) brightness(1.08);
-}
-.sorting-bin--active-drop .sorting-bin__category-icon {
-  animation: category-icon-pulse 0.5s ease-in-out infinite;
 }
 .sorting-bin--hint {
   animation: hint-pulse 680ms ease-in-out 2;
   filter: drop-shadow(0 0 .75rem rgb(255 232 82 / 88%)) brightness(1.12);
 }
 .scene--focused-hint .sorting-bin:not(.sorting-bin--hint) { opacity: .72; filter: saturate(.78); }
-.sorting-bin--active-drop .sorting-bin__front {
-  filter: brightness(1.12);
-}
-.sorting-bin--active-drop .sorting-bin__icon-circle {
-  box-shadow: 0 0 0.4rem rgb(255 220 150 / 60%);
-}
-
 /* Receiving animation */
 .sorting-bin--receiving { animation: bin-receive 0.34s cubic-bezier(.2,.85,.35,1) both; }
 .sorting-bin--receiving::after { position: absolute; z-index: 5; top: 20%; left: 50%; color: #fff6a6; font-size: clamp(1rem, 2vw, 1.8rem); letter-spacing: 0.35em; text-shadow: 0 0.08em 0 #e38326, 0 0 0.35em #fff; transform: translateX(-50%); animation: bin-sparkle 0.42s ease-out both; pointer-events: none; content: "✦ "; }
@@ -391,7 +307,6 @@ body {
 }
 @keyframes bin-receive { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-1.4%); } }
 @keyframes bin-sparkle { 0% { opacity: 0; scale: .55; translate: -50% 0.4em; } 35% { opacity: 1; } 100% { opacity: 0; scale: 1.2; translate: -50% -0.6em; } }
-@keyframes category-icon-pulse { 50% { scale: 1.06; filter: brightness(1.08) drop-shadow(0 0.14vw 0.1vw rgb(255 255 255 / 46%)); } }
 @keyframes hint-pulse { 50% { transform: translateY(-2%) scale(1.045); } }
 
 .hud {
@@ -566,9 +481,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .sorting-bin,
-  .sorting-bin__shell,
+  .sorting-bin__image,
   #mastery-fill { transition-duration: 0.01ms; }
-  .sorting-bin--active-drop .sorting-bin__category-icon { animation: none; }
   .sorting-bin--hint,
   .hud__score--penalty { animation-duration: .01ms; animation-iteration-count: 1; }
 }
