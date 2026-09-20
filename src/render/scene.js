@@ -55,8 +55,7 @@ function renderItems(items, level, state) {
 
 function createBin(bin, itemName, state) {
   const root = document.createElement("div");
-  const hasBakedArtwork = bin.id === "long" || bin.id === "round";
-  root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${hasBakedArtwork ? " sorting-bin--baked" : " sorting-bin--dynamic"}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}${state.hintCategory === bin.id ? " sorting-bin--hint" : ""}`;
+  root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}${state.hintCategory === bin.id ? " sorting-bin--hint" : ""}`;
   root.dataset.dropCategory = bin.id;
   root.setAttribute("role", "button");
   root.tabIndex = 0;
@@ -67,28 +66,6 @@ function createBin(bin, itemName, state) {
   hitArea.className = "sorting-bin__hit-area";
   root.append(hitArea);
   
-  // Use cardboard box image based on bin type
-  // The provided artwork includes the icon and label baked in.
-  const boxImageSrc = bin.id === "round" ? assets.items.cardboardBoxRound : assets.items.cardboardBoxLong;
-  
-  // Main box image
-  const boxImage = document.createElement("img");
-  boxImage.className = "sorting-bin__image";
-  boxImage.src = boxImageSrc;
-  boxImage.alt = "";
-  root.append(boxImage);
-
-  if (!hasBakedArtwork) {
-    const category = document.createElement("div");
-    category.className = "sorting-bin__category";
-    category.append(art(bin.art, "sorting-bin__category-icon", bin.assetSet));
-    const label = document.createElement("strong");
-    label.className = "sorting-bin__category-label";
-    label.textContent = bin.label.toUpperCase();
-    category.append(label);
-    root.append(category);
-  }
-  
   if (state.placed?.category === bin.id) {
     // Drop mask for the animation of item entering the box
     // Positioned to match the opening of the cardboard box in the artwork
@@ -97,6 +74,21 @@ function createBin(bin, itemName, state) {
     dropMask.append(art(state.placed.art, "sorting-bin__dropped-item", state.placed.assetSet));
     root.append(dropMask);
   }
+
+  const shell = document.createElement("div");
+  shell.className = "sorting-bin__shell";
+  shell.innerHTML = '<span class="sorting-bin__opening"></span><span class="sorting-bin__flap sorting-bin__flap--left"></span><span class="sorting-bin__flap sorting-bin__flap--right"></span>';
+  const front = document.createElement("div");
+  front.className = "sorting-bin__front";
+  const iconCircle = document.createElement("div");
+  iconCircle.className = "sorting-bin__icon-circle";
+  iconCircle.append(art(bin.art, "sorting-bin__category-icon", bin.assetSet));
+  const label = document.createElement("strong");
+  label.className = "sorting-bin__category-label";
+  label.textContent = bin.label.toUpperCase();
+  front.append(iconCircle, label);
+  shell.append(front);
+  root.append(shell);
   
   return root;
 }
