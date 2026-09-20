@@ -58,6 +58,7 @@ export const assets = {
       slides: "assets/ui/slides-sort-bin.png",
       both: "assets/ui/both-sort-bin.png",
     },
+    boxLeaves: "assets/ui/ui-box-leaves.png",
   },
   audio: {},
   fx: {},

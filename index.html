@@ -36,10 +36,17 @@
         </div>
 
         <header class="hud" aria-label="Game status and controls">
-          <div class="hud__level"><span id="level-icon">Level 1 / 9</span><small id="level-title">Long or Round</small></div>
-          <div class="progress-card" aria-label="Mastery progress"><div class="progress-card__track" role="progressbar" aria-label="Level mastery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="mastery-fill"></span></div><span id="mastery-text">Start!</span></div>
-          <div id="score-card" class="hud__score" aria-label="Score">★ 0</div>
-          <button id="sound-button" class="icon-button icon-button--sound" type="button" aria-label="Toggle sound">♪</button>
+          <div class="hud__level">
+            <img src="assets/ui/ui-level-panel.png" alt="" />
+            <span id="level-icon">Level 1 / 9</span><small id="level-title">Long or Round</small>
+          </div>
+          <div class="progress-card" aria-label="Mastery progress">
+            <img src="assets/ui/ui-progress-bar.png" alt="" />
+            <div class="progress-card__track" role="progressbar" aria-label="Level mastery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="mastery-fill"></span></div>
+            <span id="mastery-text">0 / 15</span>
+          </div>
+          <div id="score-card" class="hud__score" aria-label="Score"><img src="assets/ui/ui-score-badge.png" alt="" /><span id="score-text">0</span></div>
+          <button id="sound-button" class="icon-button icon-button--sound" type="button" aria-label="Toggle sound"><img src="assets/ui/ui-music-button.png" alt="" /></button>
         </header>
 
         <section id="game-ui" class="game-ui" aria-label="Game interaction area"></section>

@@ -65,6 +65,12 @@ function createBin(bin, itemName, state) {
   const hitArea = document.createElement("div");
   hitArea.className = "sorting-bin__hit-area";
   root.append(hitArea);
+
+  const leaves = document.createElement("img");
+  leaves.className = "sorting-bin__leaves";
+  leaves.src = assets.ui.boxLeaves;
+  leaves.alt = "";
+  root.append(leaves);
   
   // Every category uses its own complete, finished box artwork. Level 1 keeps
   // the original approved LONG and ROUND assets unchanged.

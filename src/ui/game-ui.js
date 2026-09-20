@@ -1,7 +1,3 @@
-function sparkyPlaceholder(className) {
-  return `<div class="${className} sparky-placeholder" role="img" aria-label="Sparky placeholder"><span>S</span><small>Placeholder</small></div>`;
-}
-
 export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");
   root.replaceChildren();
@@ -9,7 +5,7 @@ export function renderGameUi(state, level) {
     const accuracy = state.attempts ? Math.round((state.firstTryCorrect / state.attempts) * 100) : 100;
     const card = document.createElement("div");
     card.className = "game-modal game-certificate";
-    card.innerHTML = `${sparkyPlaceholder("game-certificate__mascot")}<small>Shape Lab Certificate</small><h2>Shape &amp; Motion Master</h2><p>You completed all nine learning levels.</p><div class="game-certificate__results"><strong>★ ${state.score}</strong><strong>${state.campaignStars} / 27 stars</strong><strong>${accuracy}% first try</strong></div><div class="game-certificate__stamps"><span>SHAPES</span><span>FAMILIES</span><span>MOTION</span></div>`;
+    card.innerHTML = `<small>Shape Lab Certificate</small><h2>Shape &amp; Motion Master</h2><p>You completed all nine learning levels.</p><div class="game-certificate__results"><strong>★ ${state.score}</strong><strong>${state.campaignStars} / 27 stars</strong><strong>${accuracy}% first try</strong></div><div class="game-certificate__stamps"><span>SHAPES</span><span>FAMILIES</span><span>MOTION</span></div>`;
     const restart = document.createElement("button");
     restart.className = "game-modal__button";
     restart.dataset.action = "restart";
@@ -36,7 +32,7 @@ export function renderGameUi(state, level) {
   if (state.completedLevel) {
     const card = document.createElement("div");
     card.className = "game-modal";
-    card.innerHTML = `${sparkyPlaceholder("game-modal__mascot")}<span class=\"game-modal__stars\">${"★".repeat(state.stars)}${"☆".repeat(state.maxStars - state.stars)}</span><h2>${state.feedback.message}</h2><p>${state.correct} successful sorts • +50 level bonus</p>`;
+    card.innerHTML = `<span class=\"game-modal__stars\">${"★".repeat(state.stars)}${"☆".repeat(state.maxStars - state.stars)}</span><h2>${state.feedback.message}</h2><p>${state.correct} successful sorts • +50 level bonus</p>`;
     const next = document.createElement("button");
     next.className = "game-modal__button";
     next.dataset.action = "next";

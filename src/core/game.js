@@ -402,6 +402,7 @@ export function createGame() {
       state.muted = !state.muted;
       sounds.setMuted(state.muted);
       document.querySelector("#sound-button").setAttribute("aria-pressed", String(state.muted));
+      render();
     });
     document.querySelector("#back-button")?.addEventListener("click", () => dispatch("pause"));
     document.addEventListener("click", (event) => {
