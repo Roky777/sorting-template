@@ -498,6 +498,23 @@ body {
 .game-certificate__stamps span { display: grid; place-items: center; width: clamp(3.6rem, 6.8cqw, 5.8rem); aspect-ratio: 1; border: clamp(3px, .35cqw, 5px) double #e27b26; border-radius: 50%; color: #a34e1d; font-size: clamp(.52rem, .8cqw, .76rem); font-weight: 1000; transform: rotate(-5deg); }
 .game-certificate__stamps span:nth-child(2) { border-color: #23a5ac; color: #13747e; transform: rotate(4deg); }
 .game-certificate__stamps span:nth-child(3) { border-color: #7961c4; color: #58419f; transform: rotate(-2deg); }
+.sparky-placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  aspect-ratio: 1;
+  border: clamp(2px, .3cqw, 4px) dashed rgb(255 255 255 / 88%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #5ad0de, #287ca8);
+  color: #fff;
+  box-shadow: 0 .18rem .35rem rgb(26 82 109 / 28%);
+  overflow: hidden;
+}
+.sparky-placeholder span { font-size: clamp(1.35rem, 3.2cqw, 2.8rem); font-weight: 1000; line-height: .9; }
+.sparky-placeholder small { color: #eaffff; font-size: clamp(.34rem, .48cqw, .48rem); font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.tutorial-plaque__sparky.sparky-placeholder { width: 100%; height: auto; align-self: center; }
+.game-modal__mascot.sparky-placeholder { max-height: none; }
+.game-certificate__mascot.sparky-placeholder { max-height: none; }
 
 @media (max-width: 1024px) and (orientation: portrait) {
   .game-stage { visibility: hidden; }

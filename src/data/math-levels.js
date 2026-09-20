@@ -118,15 +118,15 @@ const exactArt = {
 };
 
 const levelTuning = [
-  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 3, intro: "Drag the pencil to LONG and the ball to ROUND." },
-  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Look at each picture. The name tags are gone!", streakBonus: true },
-  { occupancyStart: 1, occupancyTarget: 3, occupancyRampAt: 2, intro: "Different objects can belong to the same shape family." },
-  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Compare the whole shape, not its color or use.", showNamesUntilSpawn: 10 },
-  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Three shape families are ready. Choose carefully.", trioBonus: true },
-  { occupancyStart: 1, occupancyTarget: 3, occupancyRampAt: 2, intro: "Round surfaces roll. Flat surfaces slide." },
-  { occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Picture challenge: decide without name tags.", streakBonus: true },
-  { occupancyStart: 1, occupancyTarget: 3, occupancyRampAt: 2, intro: "A cylinder can roll on its side and slide on its flat end.", showNamesUntilSpawn: 10, bothBonus: true },
-  { occupancyStart: 3, occupancyTarget: 3, occupancyRampAt: 0, intro: "Motion Master: sort every picture independently." },
+  { goal: 15, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 3, intro: "Drag the pencil to LONG and the ball to ROUND." },
+  { goal: 15, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Look at each picture. The name tags are gone!", streakBonus: true },
+  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Different objects can belong to the same shape family." },
+  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Compare the whole shape, not its color or use." },
+  { goal: 18, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Three shape families are ready. Choose carefully.", trioBonus: true },
+  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Round surfaces roll. Flat surfaces slide." },
+  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Picture challenge: decide without name tags.", streakBonus: true },
+  { goal: 18, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "A cylinder can roll on its side and slide on its flat end.", bothBonus: true },
+  { goal: 20, occupancyStart: 3, occupancyTarget: 5, occupancyRampAt: 0, intro: "Motion Master: sort every picture independently." },
 ];
 
 // Every item carries its source art set.  Rendering stays reusable while the

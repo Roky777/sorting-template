@@ -20,7 +20,7 @@ export function createGame() {
   const ENTRY_GAP = 28;
   const DEFAULT_ITEM_WIDTH = 145;
   const MIN_SPAWN_SPACING_RATIO = 0.2;
-  const MISS_PENALTY = 5;
+  const MISS_PENALTY = 10;
   let beltWidth = window.innerWidth;
 
   const itemKey = (item) => item.name;
@@ -43,9 +43,10 @@ export function createGame() {
     const start = level().occupancyStart ?? 2;
     const target = level().occupancyTarget ?? 3;
     const rampAt = level().occupancyRampAt ?? 2;
-    if (state.completedMastery >= rampAt) return target;
-    if (start === 1 && state.completedMastery > 0) return Math.min(2, target);
-    return start;
+    const responsiveLimit = beltWidth < 700 ? 2 : beltWidth < 1100 ? 3 : 5;
+    if (state.completedMastery >= rampAt) return Math.min(target, responsiveLimit);
+    if (start === 1 && state.completedMastery > 0) return Math.min(2, target, responsiveLimit);
+    return Math.min(start, responsiveLimit);
   };
   const minOnBelt = () => Math.min(2, maxOnBelt());
 
@@ -66,7 +67,7 @@ export function createGame() {
   }
 
   function advanceItems({ detail }) {
-    if (state.paused || state.completedLevel || !detail?.dx) return;
+    if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired || !detail?.dx) return;
     beltWidth = detail.width;
     const itemWidth = itemWidthFor(detail.width);
     const moving = state.activeItems.filter((item) => item.beltState === "moving");
@@ -133,7 +134,8 @@ export function createGame() {
   function pickNextItem() {
     const active = activeKeys();
     const eligible = (item) => state.mastery[itemKey(item)]?.correct < level().requiredCorrectPerItem && !active.has(itemKey(item));
-    const readyWeak = state.weakItemQueue.find((entry) => state.spawnCount >= entry.readyAt && eligible(entry.item) && allowsCategory(entry.item.answer));
+    const hasUnseenItems = level().items.some((item) => state.mastery[itemKey(item)]?.lastSeen === -99 && !active.has(itemKey(item)));
+    const readyWeak = !hasUnseenItems && state.weakItemQueue.find((entry) => state.spawnCount >= entry.readyAt && eligible(entry.item) && allowsCategory(entry.item.answer));
     if (readyWeak) {
       state.weakItemQueue = state.weakItemQueue.filter((entry) => entry !== readyWeak);
       return readyWeak.item;
@@ -153,7 +155,7 @@ export function createGame() {
     if (spawnTimer) return;
     spawnTimer = window.setTimeout(() => {
       spawnTimer = undefined;
-      if (state.paused || state.completedLevel) return;
+      if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired) return;
       if (state.activeItems.length >= maxOnBelt()) return;
       // Never place a new card on top of one that is still entering the lane.
       if (!entryIsClear()) return scheduleSpawn(220 + Math.random() * 120);
@@ -182,7 +184,7 @@ export function createGame() {
   }
 
   function ensureBeltPopulation() {
-    if (state.paused || state.completedLevel) return;
+    if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired) return;
     if (state.activeItems.length < minOnBelt()) scheduleSpawn(120);
     else if (state.activeItems.length < maxOnBelt()) scheduleSpawn(520 + Math.random() * 280);
   }
@@ -204,7 +206,7 @@ export function createGame() {
       .filter((item) => carryWeakNames.has(item.name))
       .map((item, index) => ({ item, readyAt: index * 2 }));
     state.carryWeakNames = [];
-    state.totalRequired = level().items.length * level().requiredCorrectPerItem;
+    state.totalRequired = level().goal;
     state.completedMastery = 0;
     state.correctStreak = 0;
     state.sortedCategories = [];
@@ -231,6 +233,7 @@ export function createGame() {
 
   function finishLevel() {
     if (state.completedLevel) return;
+    state.activeItems = [];
     state.score += 50;
     const accuracy = state.levelAttempts ? state.levelFirstTryCorrect / state.levelAttempts : 1;
     state.stars = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : 1;
@@ -252,7 +255,7 @@ export function createGame() {
       const points = firstTry ? 10 : 7;
       mastery.correct += 1;
       mastery.mistakesSinceCorrect = 0;
-      state.completedMastery += 1;
+      state.completedMastery = Math.min(state.totalRequired, state.completedMastery + 1);
       state.attempts += 1;
       state.levelAttempts += 1;
       if (firstTry) {
@@ -294,6 +297,7 @@ export function createGame() {
       state.placed = { art: activeItem.art, assetSet: activeItem.assetSet, category };
       state.selectedItemId = null;
       state.activeItems = state.activeItems.filter((candidate) => candidate.id !== activeItem.id);
+      if (state.completedMastery >= state.totalRequired) state.activeItems = [];
       // The dropped item is now owned by the short bin animation, not the belt.
       render();
       sounds.drop();
@@ -337,6 +341,7 @@ export function createGame() {
     state.attempts += 1;
     state.levelAttempts += 1;
     state.correctStreak = 0;
+    state.score -= 10;
     // A wrong item snaps back onto the moving belt immediately. Pausing it here
     // would let following objects catch up and visually form a stack.
     activeItem.beltState = "moving";
@@ -344,7 +349,7 @@ export function createGame() {
     state.selectedItemId = null;
     state.feedback = {
       type: "wrong",
-      message: mastery.wrong >= 3 ? "Try the glowing box" : mastery.wrong >= 2 ? "Look at the shape clue" : "Try again!",
+      message: mastery.wrong >= 3 ? "Try the glowing box −10" : mastery.wrong >= 2 ? "Look at the shape clue −10" : "Try again! −10",
       category,
     };
     sounds.retry();
