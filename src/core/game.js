@@ -15,9 +15,10 @@ export function createGame() {
   let drag;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
-  const ENTRY_GAP = 28;
+  const ENTRY_GAP = 20;
   const DEFAULT_ITEM_WIDTH = 145;
-  const MIN_SPAWN_SPACING_RATIO = 0.2;
+  const MIN_SPAWN_SPACING_RATIO = 0.16;
+  const OCCUPANCY_BONUS = 1;
   const MISS_PENALTY = 10;
   let beltWidth = window.innerWidth;
 
@@ -41,12 +42,12 @@ export function createGame() {
     const start = level().occupancyStart ?? 2;
     const target = level().occupancyTarget ?? 3;
     const rampAt = level().occupancyRampAt ?? 2;
-    const responsiveLimit = beltWidth < 700 ? 2 : beltWidth < 1100 ? 3 : 5;
-    if (state.completedMastery >= rampAt) return Math.min(target, responsiveLimit);
-    if (start === 1 && state.completedMastery > 0) return Math.min(2, target, responsiveLimit);
-    return Math.min(start, responsiveLimit);
+    const responsiveLimit = beltWidth < 700 ? 3 : beltWidth < 1100 ? 4 : 6;
+    if (state.completedMastery >= rampAt) return Math.min(target + OCCUPANCY_BONUS, responsiveLimit);
+    if (start === 1 && state.completedMastery > 0) return Math.min(2 + OCCUPANCY_BONUS, target + OCCUPANCY_BONUS, responsiveLimit);
+    return Math.min(start + OCCUPANCY_BONUS, responsiveLimit);
   };
-  const minOnBelt = () => Math.min(2, maxOnBelt());
+  const minOnBelt = () => Math.min(3, maxOnBelt());
 
   const itemWidthFor = (width = beltWidth) => Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, width * 0.1));
 
@@ -55,7 +56,9 @@ export function createGame() {
     // New items launch only after the previous item has travelled far enough
     // into the lane. Once launched, every item moves independently, so a
     // dragged/returning object can never create a queue at the belt exit.
-    const launchClearance = Math.max(itemWidth + ENTRY_GAP, beltWidth * MIN_SPAWN_SPACING_RATIO);
+    const launchX = -itemWidth - ENTRY_GAP;
+    const itemSpacing = Math.max(itemWidth + ENTRY_GAP, beltWidth * MIN_SPAWN_SPACING_RATIO);
+    const launchClearance = launchX + itemSpacing;
     return !state.activeItems.some((item) => (item.x ?? -itemWidth) < launchClearance);
   }
 
@@ -157,12 +160,13 @@ export function createGame() {
       if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired) return;
       if (state.activeItems.length >= maxOnBelt()) return;
       // Never place a new card on top of one that is still entering the lane.
-      if (!entryIsClear()) return scheduleSpawn(220 + Math.random() * 120);
+      if (!entryIsClear()) return scheduleSpawn(80 + Math.random() * 60);
       const source = pickNextItem();
       // A blocked entry or temporarily ineligible bag must retry; it must
       // never silently leave the conveyor under-populated.
-      if (!source) return scheduleSpawn(260 + Math.random() * 140);
+      if (!source) return scheduleSpawn(180 + Math.random() * 100);
       const key = itemKey(source);
+      const spawnWidth = itemWidthFor();
       state.mastery[key].lastSeen = ++state.spawnCount;
       state.lastCategory = source.answer;
       state.categoryHistory.push(source.answer);
@@ -173,19 +177,19 @@ export function createGame() {
         spawnOrder: state.spawnCount,
         visualScale: visualScaleFor(source),
         rotation: source.answer === "long" ? -8 + Math.random() * 16 : 0,
-        x: -DEFAULT_ITEM_WIDTH - ENTRY_GAP,
-        width: DEFAULT_ITEM_WIDTH,
+        x: -spawnWidth - ENTRY_GAP,
+        width: spawnWidth,
         beltState: "moving",
       });
       render();
-      if (state.activeItems.length < maxOnBelt()) scheduleSpawn(360 + Math.random() * 240);
+      if (state.activeItems.length < maxOnBelt()) scheduleSpawn(120 + Math.random() * 80);
     }, delay);
   }
 
   function ensureBeltPopulation() {
     if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired) return;
     if (state.activeItems.length < minOnBelt()) scheduleSpawn(120);
-    else if (state.activeItems.length < maxOnBelt()) scheduleSpawn(520 + Math.random() * 280);
+    else if (state.activeItems.length < maxOnBelt()) scheduleSpawn(220 + Math.random() * 120);
   }
 
   function loadBelt() {
