@@ -376,10 +376,10 @@ body {
 @keyframes hint-pulse { 50% { transform: translateY(-2%) scale(1.045); } }
 
 .hud {
-  --hud-control-height: clamp(3.5rem, 5.4cqw, 6.25rem);
+  --hud-control-height: clamp(2.8rem, 4.6cqw, 5.25rem);
   z-index: 12;
   display: grid;
-  grid-template-columns: minmax(8rem, 24cqw) minmax(12rem, 1fr) minmax(6rem, 16cqw) clamp(2.7rem, 6.2cqw, 6rem);
+  grid-template-columns: minmax(7rem, 22cqw) minmax(10rem, 1fr) minmax(5.5rem, 14cqw) repeat(2, var(--hud-control-height));
   align-items: start;
   gap: clamp(.25rem, .65cqw, .75rem);
   padding: clamp(.35rem, .7cqw, .7rem) clamp(.55rem, 1.25cqw, 1.25rem);
@@ -424,11 +424,6 @@ body {
   min-width: 2.75rem;
 }
 .icon-button--pause {
-  position: absolute;
-  top: clamp(4.25rem, 6.9cqw, 7.25rem);
-  right: clamp(.55rem, 1.25cqw, 1.25rem);
-  width: clamp(2.7rem, 4.35cqw, 4.6rem);
-  height: clamp(2.7rem, 4.35cqw, 4.6rem);
   border: clamp(3px, .25cqw, 5px) solid #2b9cd5;
   background: linear-gradient(180deg, #fff, #e8f5ff);
   box-shadow: inset 0 0 0 clamp(2px, .16cqw, 3px) #b8e8ff, 0 .2em .25em rgb(31 70 108 / 28%);
