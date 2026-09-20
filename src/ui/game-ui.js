@@ -1,6 +1,7 @@
 export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");
   root.classList.toggle("game-ui--success", state.completedLevel);
+  root.classList.toggle("game-ui--paused", state.paused && !state.atHome);
   root.replaceChildren();
   if (state.screen === "complete") {
     const accuracy = state.attempts ? Math.round((state.firstTryCorrect / state.attempts) * 100) : 100;
@@ -63,9 +64,24 @@ export function renderGameUi(state, level) {
     return;
   }
   if (state.paused) {
-    const pause = document.createElement("div");
-    pause.className = "game-modal";
-    pause.innerHTML = "<h2>Paused</h2><p>Press the back button again to continue.</p>";
+    const pause = document.createElement("section");
+    pause.className = "pause-screen";
+    pause.setAttribute("aria-label", "Game paused");
+    pause.innerHTML = `
+      <img class="pause-screen__background" src="assets/ui/start-background.png" alt="" />
+      <img class="pause-screen__mascot" src="assets/ui/12_peek_wave_2048 2.png" alt="Sparky waving" />
+      <img class="pause-screen__panel" src="assets/ui/21699a15ad6312465e63b85b73ddad4fbd18816d.png" alt="Take a Break" />
+      <div class="pause-screen__controls">
+        <button class="pause-screen__hotspot pause-screen__hotspot--resume" data-action="resume" type="button" aria-label="Resume game"></button>
+        <button class="pause-screen__hotspot pause-screen__hotspot--restart" data-action="request-restart" type="button" aria-label="Restart level"></button>
+        <button class="pause-screen__hotspot pause-screen__hotspot--home" data-action="home" type="button" aria-label="Return home and preserve progress"></button>
+      </div>`;
+    if (state.restartConfirm) {
+      const confirm = document.createElement("div");
+      confirm.className = "pause-confirm";
+      confirm.innerHTML = `<strong>Restart this level?</strong><small>Your progress in this level will reset.</small><div><button type="button" data-action="cancel-restart">Cancel</button><button type="button" data-action="retry-level">Restart</button></div>`;
+      pause.append(confirm);
+    }
     root.append(pause);
   }
 }

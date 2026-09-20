@@ -36,4 +36,6 @@ export const createInitialState = () => ({
   completedLevel: false,
   muted: false,
   paused: false,
+  restartConfirm: false,
+  atHome: false,
 });

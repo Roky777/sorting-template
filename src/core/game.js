@@ -388,19 +388,56 @@ export function createGame() {
     state.feedback = null;
     state.placed = null;
     state.completedLevel = false;
+    state.paused = false;
+    state.restartConfirm = false;
+    state.atHome = false;
     loadBelt();
+    sounds.resumeMusic();
     render();
+  }
+
+  function setPaused(value) {
+    state.paused = value;
+    state.restartConfirm = false;
+    if (state.paused) sounds.pauseMusic();
+    else sounds.resumeMusic();
+    render();
+  }
+
+  function goHome() {
+    state.paused = true;
+    state.restartConfirm = false;
+    state.atHome = true;
+    sounds.pauseMusic();
+    render();
+    window.dispatchEvent(new CustomEvent("game-home"));
   }
 
   function dispatch(action) {
     if (typeof action === "string") {
-      if (action === "pause") state.paused = !state.paused;
+      if (action === "pause") {
+        if (state.atHome) return;
+        return setPaused(!state.paused);
+      }
       if (action === "confirm" && state.completedLevel) nextLevel();
       return render();
     }
     if (action.type === "sort") choose(action.category);
     if (action.type === "next") nextLevel();
     if (action.type === "retry-level") retryLevel();
+    if (action.type === "resume") {
+      state.atHome = false;
+      setPaused(false);
+    }
+    if (action.type === "request-restart") {
+      state.restartConfirm = true;
+      render();
+    }
+    if (action.type === "cancel-restart") {
+      state.restartConfirm = false;
+      render();
+    }
+    if (action.type === "home") goHome();
     if (action.type === "restart") restart();
   }
 
@@ -418,6 +455,10 @@ export function createGame() {
       if (!button) return;
       if (button.dataset.action === "next") dispatch({ type: "next" });
       if (button.dataset.action === "retry-level") dispatch({ type: "retry-level" });
+      if (button.dataset.action === "resume") dispatch({ type: "resume" });
+      if (button.dataset.action === "request-restart") dispatch({ type: "request-restart" });
+      if (button.dataset.action === "cancel-restart") dispatch({ type: "cancel-restart" });
+      if (button.dataset.action === "home") dispatch({ type: "home" });
       if (button.dataset.action === "restart") dispatch({ type: "restart" });
     });
     document.addEventListener("keydown", (event) => {

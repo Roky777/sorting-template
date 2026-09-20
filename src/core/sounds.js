@@ -53,6 +53,12 @@ export function createSounds() {
       audioContext();
       startMusicLoop();
     },
+    pauseMusic() {
+      window.clearInterval(musicTimer);
+    },
+    resumeMusic() {
+      startMusicLoop();
+    },
     pickup() {
       const now = audioContext().currentTime;
       tone(420, now, 0.075, { end: 610, volume: 0.025, type: "sine" });

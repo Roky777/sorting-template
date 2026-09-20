@@ -8,16 +8,29 @@ if (Number.isInteger(requestedLevel) && requestedLevel >= 1 && requestedLevel <=
   game.state.level = requestedLevel;
 }
 
-let started = false;
+let transitioning = false;
+let gameBooted = false;
 const startScreen = document.querySelector("#start-screen");
 document.querySelector("#start-button").addEventListener("click", () => {
-  if (started) return;
-  started = true;
+  if (transitioning) return;
+  transitioning = true;
   game.enableAudio();
   startScreen.classList.add("start-screen--leaving");
   window.setTimeout(() => {
     startScreen.hidden = true;
-    game.start();
-    startConveyorAnimation();
+    startScreen.classList.remove("start-screen--leaving");
+    if (gameBooted) game.dispatch({ type: "resume" });
+    else {
+      gameBooted = true;
+      game.start();
+      startConveyorAnimation();
+    }
+    transitioning = false;
   }, 260);
+});
+
+window.addEventListener("game-home", () => {
+  transitioning = false;
+  startScreen.hidden = false;
+  startScreen.classList.remove("start-screen--leaving");
 });
