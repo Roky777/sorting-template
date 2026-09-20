@@ -1,7 +1,10 @@
 // This is the single source of truth for conveyor travel. Both the seam SVG
 // and the objects subscribe to this same requestAnimationFrame clock.
-// The project owner explicitly requested twice the original conveyor speed.
-const BELT_SPEED = 290;
+// Move a fixed fraction of the lane each second so phones, tablets, and
+// desktops all give the child the same amount of time to classify an item.
+// Fifteen percent per second keeps the requested faster belt while making a
+// complete lane crossing a calm, consistent ~6.7 seconds on every device.
+const BELT_TRAVEL_RATE = 0.15;
 const PERSPECTIVE_FACTOR = 0.82;
 
 export function startConveyorAnimation() {
@@ -33,7 +36,7 @@ export function startConveyorAnimation() {
     const rect = track.getBoundingClientRect();
     width = Math.max(1, rect.width);
     height = Math.max(1, rect.height);
-    spacing = Math.max(120, Math.min(180, width / 8));
+    spacing = Math.max(64, width / 8);
     seams.setAttribute("viewBox", `0 0 ${width} ${height}`);
     seams.setAttribute("preserveAspectRatio", "none");
   }
@@ -54,13 +57,14 @@ export function startConveyorAnimation() {
   function tick(now) {
     const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
-    const dx = BELT_SPEED * deltaSeconds;
+    const beltSpeed = width * BELT_TRAVEL_RATE;
+    const dx = beltSpeed * deltaSeconds;
     offset = (offset + dx) % spacing;
     draw();
     // Game objects deliberately do not use a CSS keyframe. Dispatching their
     // per-frame delta makes their movement visually locked to these seams.
     window.dispatchEvent(new CustomEvent("conveyor-motion", {
-      detail: { dx, speed: BELT_SPEED, width, height },
+      detail: { dx, speed: beltSpeed, width, height },
     }));
     requestAnimationFrame(tick);
   }
