@@ -30,8 +30,6 @@ export const createInitialState = () => ({
   campaignStars: 0,
   feedback: null,
   hintCategory: null,
-  milestone: null,
-  introVisible: false,
   selectedItemId: null,
   placed: null,
   completedLevel: false,

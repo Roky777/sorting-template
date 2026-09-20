@@ -1,9 +1,3 @@
-import { assets } from "../data/assets.js";
-
-function tutorialArt(level, artId) {
-  return assets.items.mathByLevel?.[level.assetSet]?.[artId] ?? assets.items.math[artId] ?? assets.items.math.ball;
-}
-
 function sparkyPlaceholder(className) {
   return `<div class="${className} sparky-placeholder" role="img" aria-label="Sparky placeholder"><span>S</span><small>Placeholder</small></div>`;
 }
@@ -28,19 +22,6 @@ export function renderGameUi(state, level) {
   prompt.className = "level-prompt";
   prompt.innerHTML = `<span>Level ${state.level} of 9</span><h1>${level.title}</h1><p>${level.instruction}</p>`;
   root.append(prompt);
-  if (state.introVisible) {
-    const tutorial = document.createElement("section");
-    tutorial.className = `tutorial-plaque${state.level >= 6 ? " tutorial-plaque--motion" : ""}`;
-    const cues = level.bins.map((bin) => `<span><img src="${tutorialArt(level, bin.art)}" alt=""><b>${bin.label}</b></span>`).join("");
-    tutorial.innerHTML = `${sparkyPlaceholder("tutorial-plaque__sparky")}<div class="tutorial-plaque__copy"><small>Level ${state.level}</small><strong>${level.title}</strong><p>${level.intro}</p></div><div class="tutorial-plaque__demo" aria-hidden="true">${cues}</div>`;
-    root.append(tutorial);
-  }
-  if (state.milestone) {
-    const milestone = document.createElement("div");
-    milestone.className = "milestone-pop";
-    milestone.innerHTML = `<span>★</span><strong>${state.milestone}% mastered</strong>`;
-    root.append(milestone);
-  }
   if (state.feedback && state.feedback.type !== "complete") {
     const feedback = document.createElement("div");
     feedback.className = `feedback feedback--${state.feedback.type}${state.feedback.category ? ` feedback--bin-${state.feedback.category}` : ""}`;

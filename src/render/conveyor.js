@@ -1,6 +1,7 @@
 // This is the single source of truth for conveyor travel. Both the seam SVG
 // and the objects subscribe to this same requestAnimationFrame clock.
-const BELT_SPEED = 145;
+// The project owner explicitly requested twice the original conveyor speed.
+const BELT_SPEED = 290;
 const PERSPECTIVE_FACTOR = 0.82;
 
 export function startConveyorAnimation() {

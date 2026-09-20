@@ -12,8 +12,6 @@ export function createGame() {
   let feedbackTimer;
   let spawnTimer;
   let refillTimer;
-  let introTimer;
-  let milestoneTimer;
   let drag;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
@@ -190,8 +188,6 @@ export function createGame() {
   }
 
   function loadBelt() {
-    window.clearTimeout(introTimer);
-    window.clearTimeout(milestoneTimer);
     const carryWeakNames = new Set(state.carryWeakNames);
     state.activeItems = [];
     state.spawnCount = 0;
@@ -216,13 +212,7 @@ export function createGame() {
     state.levelAttempts = 0;
     state.levelFirstTryCorrect = 0;
     state.hintCategory = null;
-    state.milestone = null;
-    state.introVisible = true;
     scheduleSpawn(550);
-    introTimer = window.setTimeout(() => {
-      state.introVisible = false;
-      render();
-    }, [4200, 2200, 3200, 2400, 2400, 3200, 2200, 3400, 2400][state.levelIndex]);
   }
 
   function render() {
@@ -317,13 +307,7 @@ export function createGame() {
         const milestone = [0.25, 0.5, 0.75].find((value) => beforeProgress < value && afterProgress >= value && !state.reachedMilestones.includes(value));
         if (milestone) {
           state.reachedMilestones.push(milestone);
-          state.milestone = Math.round(milestone * 100);
           sounds.milestone();
-          window.clearTimeout(milestoneTimer);
-          milestoneTimer = window.setTimeout(() => {
-            state.milestone = null;
-            render();
-          }, 760);
         }
         render();
         feedbackTimer = window.setTimeout(() => {
@@ -369,8 +353,6 @@ export function createGame() {
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
-    window.clearTimeout(introTimer);
-    window.clearTimeout(milestoneTimer);
     spawnTimer = undefined;
     if (state.levelIndex === MATH_LEVELS.length - 1) {
       state.screen = "complete";
@@ -397,8 +379,6 @@ export function createGame() {
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
-    window.clearTimeout(introTimer);
-    window.clearTimeout(milestoneTimer);
     spawnTimer = undefined;
     Object.assign(state, createInitialState());
     loadBelt();

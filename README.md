@@ -16,7 +16,9 @@ A dependency-free browser sorting game based on the supplied Grade 1 GDD. Serve 
 | 8 | Roll, Slide or Both | 18 | On |
 | 9 | Motion Master | 20 | Off |
 
-The conveyor displays two items on compact screens, three on medium screens, and up to five on wide screens. Wrong answers and missed objects each deduct 10 points. Sparky is deliberately represented by a styled placeholder until approved character art is supplied.
+The conveyor displays two items on compact screens, three on medium screens, and up to five on wide screens. Its movement speed is 290 px/s (twice the original 145 px/s). Wrong answers and missed objects each deduct 10 points. Sparky is deliberately represented by a styled placeholder until approved character art is supplied.
+
+Normal play intentionally avoids large introduction and milestone popups so the conveyor, sorting bins, progress, and essential feedback remain unobstructed.
 
 ## Project map
 
