@@ -1,4 +1,4 @@
-import { createGame } from "./core/game.js?v=20260922-stream-ui-3";
+import { createGame } from "./core/game.js?v=20260923-analytics-1";
 import { startConveyorAnimation } from "./render/conveyor.js";
 import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js";
 import { getLevel } from "./data/math-levels.js";
@@ -8,7 +8,7 @@ const requestedLevel = Number(launchParams.get("level"));
 const requestedSuccessLevel = Number(launchParams.get("success"));
 const isDebugLaunch = (Number.isInteger(requestedLevel) && requestedLevel >= 1 && requestedLevel <= 9)
   || (Number.isInteger(requestedSuccessLevel) && requestedSuccessLevel >= 1 && requestedSuccessLevel <= 9);
-const game = createGame({ persistProgress: !isDebugLaunch });
+const game = createGame({ persistProgress: !isDebugLaunch, gameId: "sorting-template" });
 let sparky;
 let successDance;
 let controllerRequest;

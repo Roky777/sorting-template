@@ -9,8 +9,9 @@ import { renderGameUi } from "../ui/game-ui.js";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
 import { preloadLevelAssets } from "../data/assets.js";
+import { createGameAnalytics } from "./analytics.js";
 
-export function createGame({ persistProgress = true } = {}) {
+export function createGame({ persistProgress = true, gameId = "sorting-template" } = {}) {
   const state = createInitialState();
   const restoredState = persistProgress ? readGameSave(MATH_LEVELS.length) : null;
   if (restoredState) Object.assign(state, restoredState);
@@ -23,6 +24,7 @@ export function createGame({ persistProgress = true } = {}) {
   let drag;
   let tutorial;
   const sounds = createSounds();
+  const analytics = createGameAnalytics({ gameId, levelCount: MATH_LEVELS.length, enabled: persistProgress });
   const level = () => getLevel(state.levelIndex);
   const ENTRY_GAP = 24;
   const DEFAULT_ITEM_WIDTH = 145;
@@ -128,6 +130,12 @@ export function createGame({ persistProgress = true } = {}) {
     state.activeItems = state.activeItems.filter((item) => !missedIds.has(item.id));
     if (missedIds.has(Number(state.selectedItemId))) state.selectedItemId = null;
     for (const missedItem of missedItems) {
+      analytics.recordTask({
+        itemName: missedItem.name,
+        correctChoice: missedItem.answer,
+        choiceMade: "MISSED",
+        successful: false,
+      });
       const mastery = state.mastery[itemKey(missedItem)];
       mastery.wrong += 1;
       mastery.mistakesSinceCorrect += 1;
@@ -260,6 +268,7 @@ export function createGame({ persistProgress = true } = {}) {
     state.levelAttempts = 0;
     state.levelFirstTryCorrect = 0;
     state.levelScore = 0;
+    analytics.startLevel(state.levelIndex + 1);
     state.hintCategory = null;
     const forceTutorial = forceOpeningTutorial && state.levelIndex === 0;
     forceOpeningTutorial = false;
@@ -334,6 +343,13 @@ export function createGame({ persistProgress = true } = {}) {
     state.stars = starRatio >= 0.8 ? 3 : starRatio >= 0.45 ? 2 : 1;
     state.campaignStars += state.stars;
     state.completedLevel = true;
+    analytics.completeLevel({
+      levelNumber: state.levelIndex + 1,
+      stars: state.stars,
+      attempts: state.levelAttempts,
+      firstTryCorrect: state.levelFirstTryCorrect,
+      score: state.levelScore,
+    });
     state.feedback = { type: "complete", message: "Wonderful sorting!" };
     if (persistProgress) {
       saveHighestLevel(Math.min(state.levelIndex + 2, MATH_LEVELS.length), MATH_LEVELS.length);
@@ -393,6 +409,12 @@ export function createGame({ persistProgress = true } = {}) {
     if (state.paused || state.completedLevel || state.placed || !activeItem) return;
     if (tutorial?.handleChoice(activeItem, category)) return;
     const correct = activeItem.answer === category;
+    analytics.recordTask({
+      itemName: activeItem.name,
+      correctChoice: activeItem.answer,
+      choiceMade: category,
+      successful: correct,
+    });
     if (correct) {
       const mastery = state.mastery[itemKey(activeItem)];
       const wasMastered = mastery.correct >= level().requiredCorrectPerItem;
@@ -542,6 +564,7 @@ export function createGame({ persistProgress = true } = {}) {
     window.clearTimeout(spawnTimer);
     spawnTimer = undefined;
     if (persistProgress) clearGameSave();
+    analytics.resetRun();
     Object.assign(state, createInitialState());
     forceOpeningTutorial = true;
     loadBelt();
@@ -771,5 +794,6 @@ export function createGame({ persistProgress = true } = {}) {
     react: reactSparky,
   });
 
-  return { start, dispatch, state, enableAudio, showSuccessPreview };
+  window.sorterAnalytics = analytics;
+  return { start, dispatch, state, enableAudio, showSuccessPreview, analytics };
 }
