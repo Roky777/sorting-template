@@ -98,7 +98,7 @@ export function renderScene(state, level) {
   const scene = document.querySelector("#scene");
   scene.dataset.level = state.level;
   scene.classList.toggle("scene--focused-hint", Boolean(state.hintCategory));
-  scene.classList.toggle("scene--complete", Boolean(state.completedLevel));
+  scene.classList.toggle("scene--complete", Boolean(state.completedLevel && state.screen !== "complete"));
   renderItems(state.completedLevel || state.screen === "complete" ? [] : state.activeItems, level, state);
   const root = document.querySelector("#sorting-bins");
   root.dataset.level = String(state.level);

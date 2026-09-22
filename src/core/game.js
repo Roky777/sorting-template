@@ -48,6 +48,10 @@ export function createGame({ persistProgress = true } = {}) {
     return bag;
   };
   const targetOnBelt = () => (beltWidth < 700 ? 5 : 6);
+  // Keep one incoming buffer beyond the visible target. Without it, reaching
+  // six items pauses the producer for a full cadence and creates a repeated
+  // empty slot between batches.
+  const maximumInFlight = () => targetOnBelt() + 1;
   const itemWidthFor = (width = beltWidth) => Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, width * 0.1));
   // Responsive but bounded spacing keeps objects clearly separated on both
   // narrow phones and wide desktop layouts.
@@ -194,10 +198,7 @@ export function createGame({ persistProgress = true } = {}) {
     spawnTimer = window.setTimeout(() => {
       spawnTimer = undefined;
       if (state.paused || tutorial?.active || state.completedLevel || state.completedMastery >= state.totalRequired) return;
-      if (state.activeItems.length >= targetOnBelt()) {
-        nextSpawnAt = performance.now() + spawnInterval();
-        return scheduleSpawn();
-      }
+      if (state.activeItems.length >= maximumInFlight()) return scheduleSpawn(120);
       const spawnWidth = itemWidthFor();
       if (!entryHasRoom(spawnWidth)) return scheduleSpawn(120);
       const source = pickNextItem();

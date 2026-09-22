@@ -1,5 +1,5 @@
 @import url("./reset.css");
-@import url("./game.css");
+@import url("./game.css?v=20260922-final-ui-1");
 
 :root {
   font-family: "Nunito", "Arial Rounded MT Bold", system-ui, sans-serif;

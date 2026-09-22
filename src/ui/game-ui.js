@@ -2,18 +2,39 @@ export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");
   root.classList.toggle("game-ui--success", state.completedLevel);
   root.classList.toggle("game-ui--paused", state.paused && !state.atHome);
+  root.classList.toggle("game-ui--certificate", state.screen === "complete");
   root.replaceChildren();
   if (state.screen === "complete") {
     const accuracy = state.attempts ? Math.round((state.firstTryCorrect / state.attempts) * 100) : 100;
-    const card = document.createElement("div");
-    card.className = "game-modal game-certificate";
-    card.innerHTML = `<small>Shape Lab Certificate</small><h2>Shape &amp; Motion Master</h2><p>You completed all nine learning levels.</p><div class="game-certificate__results"><strong>★ ${state.score}</strong><strong>${state.campaignStars} / 27 stars</strong><strong>${accuracy}% first try</strong></div><div class="game-certificate__stamps"><span>SHAPES</span><span>FAMILIES</span><span>MOTION</span></div>`;
+    const screen = document.createElement("section");
+    screen.className = "certificate-screen";
+    screen.setAttribute("aria-label", "Shape and Motion Master certificate");
+    const card = document.createElement("article");
+    card.className = "game-certificate";
+    card.innerHTML = `
+      <div class="game-certificate__sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="game-certificate__crest" aria-hidden="true"><span>★</span></div>
+      <p class="game-certificate__eyebrow">Shape Lab Champion</p>
+      <h2>Shape &amp; Motion <em>Master!</em></h2>
+      <p class="game-certificate__subtitle">All 9 levels complete!</p>
+      <div class="game-certificate__results" aria-label="Campaign results">
+        <div><i aria-hidden="true">★</i><span><small>Score</small><strong>${state.score}</strong></span></div>
+        <div><i aria-hidden="true">★</i><span><small>Stars</small><strong>${state.campaignStars}<b>/27</b></strong></span></div>
+        <div><i aria-hidden="true">✓</i><span><small>First try</small><strong>${accuracy}<b>%</b></strong></span></div>
+      </div>
+      <div class="game-certificate__stamps" aria-label="Skills mastered">
+        <div class="game-certificate__stamp game-certificate__stamp--shapes"><i aria-hidden="true"><b></b><b></b></i><strong>Shapes</strong></div>
+        <div class="game-certificate__stamp game-certificate__stamp--families"><i aria-hidden="true"><b></b><b></b><b></b></i><strong>Families</strong></div>
+        <div class="game-certificate__stamp game-certificate__stamp--motion"><i aria-hidden="true">↻</i><strong>Motion</strong></div>
+      </div>
+      <div class="game-certificate__action"></div>`;
     const restart = document.createElement("button");
     restart.className = "game-modal__button";
     restart.dataset.action = "restart";
-    restart.textContent = "Play Again";
-    card.append(restart);
-    root.append(card);
+    restart.innerHTML = `<span>Play Again</span><i aria-hidden="true">›</i>`;
+    card.querySelector(".game-certificate__action").append(restart);
+    screen.append(card);
+    root.append(screen);
     return;
   }
   const prompt = document.createElement("section");
