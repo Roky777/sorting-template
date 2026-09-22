@@ -1,9 +1,58 @@
-// Tiny synthesized sounds keep the game cheerful without adding heavy audio files.
 export function createSounds() {
+  const BGM_VOLUME = 0.16;
+  const DUCKED_BGM_VOLUME = 0.055;
+  const SUCCESS_BGM_VOLUME = 0.2;
+  const VOICE_VOLUME = 0.72;
+  const VOICES = {
+    happy: "assets/audio/sparky_voice/nyasukeVoice_vol01_ya.wav",
+    thinking: "assets/audio/sparky_voice/nyasukeVoice_vol01_ho.wav",
+    surprised: "assets/audio/sparky_voice/nyasukeVoice_vol01_mo.wav",
+    presentingDomo: "assets/audio/sparky_voice/nyasukeVoice_vol01_domo.wav",
+    presentingDomoDomo: "assets/audio/sparky_voice/nyasukeVoice_vol01_domodomo.wav",
+  };
   let context;
   let muted = false;
   let musicEnabled = false;
-  let musicTimer;
+  let musicPaused = false;
+  let musicMode = "game";
+  let musicFadeFrame;
+  let voiceTimer;
+  let bgm;
+  let successBgm;
+  let voice;
+
+  function gameMusic() {
+    if (bgm) return bgm;
+    bgm = new Audio("assets/audio/bgm/overworld.mp3");
+    bgm.loop = true;
+    bgm.preload = "metadata";
+    bgm.volume = BGM_VOLUME;
+    return bgm;
+  }
+
+  function successMusic() {
+    if (successBgm) return successBgm;
+    successBgm = new Audio("assets/audio/bgm/success-loop.mp3");
+    successBgm.loop = true;
+    successBgm.preload = "metadata";
+    successBgm.volume = 0;
+    return successBgm;
+  }
+
+  function voicePlayer() {
+    if (voice) return voice;
+    voice = new Audio();
+    voice.preload = "none";
+    voice.volume = VOICE_VOLUME;
+    voice.addEventListener("ended", () => {
+      if (bgm) bgm.volume = BGM_VOLUME;
+      syncMusic();
+    });
+    voice.addEventListener("error", () => {
+      if (bgm) bgm.volume = BGM_VOLUME;
+    });
+    return voice;
+  }
 
   function audioContext() {
     if (!context) context = new (window.AudioContext || window.webkitAudioContext)();
@@ -27,37 +76,151 @@ export function createSounds() {
     oscillator.stop(start + duration + 0.02);
   }
 
-  function playMusicBar() {
-    if (muted || !musicEnabled) return;
-    const now = audioContext().currentTime + 0.03;
-    [261.63, 329.63, 392, 329.63].forEach((frequency, index) => {
-      tone(frequency, now + index * 0.62, 0.72, { end: frequency * 1.002, volume: 0.009, type: "sine" });
-    });
+  function stopVoice() {
+    window.clearTimeout(voiceTimer);
+    voiceTimer = undefined;
+    voice?.pause();
+    if (voice) voice.currentTime = 0;
+    if (musicMode === "game" && bgm) bgm.volume = BGM_VOLUME;
   }
 
-  function startMusicLoop() {
-    window.clearInterval(musicTimer);
-    if (muted || !musicEnabled) return;
-    playMusicBar();
-    musicTimer = window.setInterval(playMusicBar, 2500);
+  function cancelMusicFade() {
+    if (musicFadeFrame) cancelAnimationFrame(musicFadeFrame);
+    musicFadeFrame = undefined;
+  }
+
+  function crossfade({ gameVolume, successVolume, duration, complete }) {
+    cancelMusicFade();
+    const gamePlayer = gameMusic();
+    const successPlayer = successMusic();
+    const startedAt = performance.now();
+    const gameStart = gamePlayer.volume;
+    const successStart = successPlayer.volume;
+    const tick = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - (1 - progress) ** 3;
+      gamePlayer.volume = gameStart + (gameVolume - gameStart) * eased;
+      successPlayer.volume = successStart + (successVolume - successStart) * eased;
+      if (progress < 1) musicFadeFrame = requestAnimationFrame(tick);
+      else {
+        musicFadeFrame = undefined;
+        complete?.();
+      }
+    };
+    musicFadeFrame = requestAnimationFrame(tick);
+  }
+
+  function syncMusic() {
+    if (muted || !musicEnabled || musicPaused) {
+      bgm?.pause();
+      successBgm?.pause();
+      return;
+    }
+    if (musicMode === "success") {
+      bgm?.pause();
+      const player = successMusic();
+      player.volume = SUCCESS_BGM_VOLUME;
+      player.play().catch(() => {});
+    } else {
+      successBgm?.pause();
+      const player = gameMusic();
+      player.volume = !voice || voice.paused ? BGM_VOLUME : DUCKED_BGM_VOLUME;
+      player.play().catch(() => {});
+    }
+  }
+
+  function playVoice(name, delay = 0) {
+    if (muted || musicMode !== "game" || !VOICES[name]) return;
+    window.clearTimeout(voiceTimer);
+    voiceTimer = window.setTimeout(() => {
+      if (muted || musicPaused) return;
+      const player = voicePlayer();
+      const music = gameMusic();
+      player.pause();
+      player.src = VOICES[name];
+      player.currentTime = 0;
+      music.volume = DUCKED_BGM_VOLUME;
+      player.play().catch(() => {
+        music.volume = BGM_VOLUME;
+      });
+    }, delay);
   }
 
   return {
     setMuted(value) {
       muted = value;
-      if (muted) window.clearInterval(musicTimer);
-      else startMusicLoop();
+      if (muted) stopVoice();
+      syncMusic();
     },
     startMusic() {
       musicEnabled = true;
+      musicPaused = false;
       audioContext();
-      startMusicLoop();
+      syncMusic();
     },
     pauseMusic() {
-      window.clearInterval(musicTimer);
+      musicPaused = true;
+      cancelMusicFade();
+      stopVoice();
+      syncMusic();
     },
     resumeMusic() {
-      startMusicLoop();
+      musicPaused = false;
+      syncMusic();
+    },
+    startSuccessMusic() {
+      musicMode = "success";
+      stopVoice();
+      const successPlayer = successMusic();
+      const gamePlayer = gameMusic();
+      successPlayer.currentTime = 0;
+      successPlayer.volume = 0;
+      if (muted || !musicEnabled || musicPaused) return syncMusic();
+      gamePlayer.play().catch(() => {});
+      successPlayer.play().catch(() => {});
+      crossfade({
+        gameVolume: 0,
+        successVolume: SUCCESS_BGM_VOLUME,
+        duration: 1400,
+        complete: () => gamePlayer.pause(),
+      });
+    },
+    stopSuccessMusic() {
+      if (musicMode !== "success") return;
+      musicMode = "game";
+      const gamePlayer = gameMusic();
+      const successPlayer = successMusic();
+      if (muted || !musicEnabled || musicPaused) {
+        successPlayer.pause();
+        successPlayer.currentTime = 0;
+        return syncMusic();
+      }
+      gamePlayer.volume = 0;
+      gamePlayer.play().catch(() => {});
+      crossfade({
+        gameVolume: BGM_VOLUME,
+        successVolume: 0,
+        duration: 800,
+        complete: () => {
+          successPlayer.pause();
+          successPlayer.currentTime = 0;
+        },
+      });
+    },
+    happy() {
+      playVoice("happy");
+    },
+    thinking() {
+      playVoice("thinking");
+    },
+    surprised() {
+      playVoice("surprised");
+    },
+    presentingDomo() {
+      playVoice("presentingDomo");
+    },
+    presentingDomoDomo() {
+      playVoice("presentingDomoDomo");
     },
     pickup() {
       const now = audioContext().currentTime;

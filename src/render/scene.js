@@ -1,9 +1,9 @@
-import { assets } from "../data/assets.js";
+import { assets, resolveMathArt } from "../data/assets.js";
 
 function art(artId, className = "", assetSet) {
   const icon = document.createElement("img");
   icon.className = `math-art ${className}`.trim();
-  icon.src = assets.items.mathByLevel?.[assetSet]?.[artId] ?? assets.items.math[artId] ?? assets.items.math.ball;
+  icon.src = resolveMathArt(artId, assetSet);
   icon.alt = "";
   return icon;
 }
@@ -38,7 +38,8 @@ function renderItems(items, level, state) {
       name.hidden = !showName;
     }
     if (currentItem.beltState !== "dragging") {
-      object.className = `game-item${String(state.selectedItemId) === String(currentItem.id) ? " game-item--selected" : ""}`;
+      object.className = `game-item${String(state.selectedItemId) === String(currentItem.id) ? " game-item--selected" : ""}${currentItem.tutorialMode ? ` game-item--tutorial game-item--tutorial-${currentItem.tutorialMode}` : ""}`;
+      object.dataset.tutorialMode = currentItem.tutorialMode ?? "";
       object.style.top = "";
       object.style.bottom = "";
       object.style.pointerEvents = "";
@@ -57,6 +58,7 @@ function createBin(bin, itemName, state) {
   const root = document.createElement("div");
   root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}${state.hintCategory === bin.id ? " sorting-bin--hint" : ""}`;
   root.dataset.dropCategory = bin.id;
+  root.dataset.tutorialArt = resolveMathArt(bin.art, bin.assetSet);
   root.setAttribute("role", "button");
   root.tabIndex = 0;
   root.setAttribute("aria-label", `${bin.label} sorting box`);
@@ -96,6 +98,7 @@ export function renderScene(state, level) {
   const scene = document.querySelector("#scene");
   scene.dataset.level = state.level;
   scene.classList.toggle("scene--focused-hint", Boolean(state.hintCategory));
+  scene.classList.toggle("scene--complete", Boolean(state.completedLevel));
   renderItems(state.completedLevel || state.screen === "complete" ? [] : state.activeItems, level, state);
   const root = document.querySelector("#sorting-bins");
   root.dataset.level = String(state.level);

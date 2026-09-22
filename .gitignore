@@ -1,1 +1,29 @@
 .DS_Store
+
+# Local source exports and superseded animation/audio takes. Only the
+# production files referenced by the runtime are committed.
+assets/audio/bgm/redproductions-*.mp3
+assets/audio/sparky_voice/*
+!assets/audio/sparky_voice/nyasukeVoice_vol01_ya.wav
+!assets/audio/sparky_voice/nyasukeVoice_vol01_ho.wav
+!assets/audio/sparky_voice/nyasukeVoice_vol01_mo.wav
+!assets/audio/sparky_voice/nyasukeVoice_vol01_domo.wav
+!assets/audio/sparky_voice/nyasukeVoice_vol01_domodomo.wav
+
+assets/characters/*
+!assets/characters/idle.png
+!assets/characters/modified_thubms_up.png
+!assets/characters/updated_nod.png
+!assets/characters/happy.png
+!assets/characters/final_presentation_clean.png
+!assets/characters/thinking.png
+!assets/characters/surprised.png
+!assets/characters/updated_dance_normalized.png
+!assets/characters/moon_walk_normalized.png
+
+assets/ui/ChatGPT Image *.png
+assets/ui/image 9.png
+assets/ui/image 10.png
+assets/ui/image 11.png
+assets/ui/image 15.png
+assets/ui/Button_start.png

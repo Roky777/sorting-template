@@ -14,6 +14,10 @@ const levelArt = {
 
 const mathByLevel = Object.fromEntries(Object.entries(levelArt).map(([level, entries]) => [level, Object.fromEntries(Object.entries(entries).map(([key, path]) => [key, grade1Math(path)]))]));
 
+export function resolveMathArt(artId, assetSet) {
+  return mathByLevel?.[assetSet]?.[artId] ?? assets.items.math[artId] ?? assets.items.math.ball;
+}
+
 // Keep filename changes local: game code references stable manifest keys, never paths.
 export const assets = {
   characters: {},
@@ -63,3 +67,45 @@ export const assets = {
   audio: {},
   fx: {},
 };
+
+// A small shared cache keeps staged preloads from requesting the same image
+// more than once. The browser cache still does the heavy lifting; this map
+// also lets callers await readiness before revealing a new game surface.
+const imageRequests = new Map();
+
+export function preloadImage(src) {
+  if (!src) return Promise.resolve();
+  if (imageRequests.has(src)) return imageRequests.get(src);
+  const request = new Promise((resolve) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve({ src, loaded: true });
+    image.onerror = () => resolve({ src, loaded: false });
+    image.src = src;
+  });
+  imageRequests.set(src, request);
+  return request;
+}
+
+export function hydrateDeferredImages(root = document) {
+  const images = [...root.querySelectorAll("img[data-src]")];
+  return Promise.all(images.map((image) => {
+    const src = image.dataset.src;
+    delete image.dataset.src;
+    image.src = src;
+    return image.decode?.().catch(() => {}) ?? preloadImage(src);
+  }));
+}
+
+export function preloadLevelAssets(level) {
+  if (!level) return Promise.resolve([]);
+  const urls = new Set([
+    assets.ui.boxLeaves,
+    ...level.items.map((entry) => resolveMathArt(entry.art, entry.assetSet)),
+    ...level.bins.flatMap((entry) => [
+      resolveMathArt(entry.art, entry.assetSet),
+      assets.ui.sortingBins[entry.id] ?? assets.ui.sortingBins.long,
+    ]),
+  ]);
+  return Promise.all([...urls].map(preloadImage));
+}

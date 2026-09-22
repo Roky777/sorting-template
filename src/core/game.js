@@ -4,25 +4,34 @@ import { bindInput } from "./input.js";
 import { createSounds } from "./sounds.js";
 import { renderHud } from "../render/hud.js";
 import { renderScene } from "../render/scene.js";
+import { BELT_TRAVEL_RATE } from "../render/conveyor.js";
 import { renderGameUi } from "../ui/game-ui.js";
+import { TutorialController } from "../tutorial/tutorial-controller.js";
+import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
+import { preloadLevelAssets } from "../data/assets.js";
 
-export function createGame() {
+export function createGame({ persistProgress = true } = {}) {
   const state = createInitialState();
+  const restoredState = persistProgress ? readGameSave(MATH_LEVELS.length) : null;
+  if (restoredState) Object.assign(state, restoredState);
   let advanceTimer;
   let feedbackTimer;
   let spawnTimer;
+  let nextSpawnAt = 0;
   let refillTimer;
+  let forceOpeningTutorial = state.levelIndex === 0;
   let drag;
+  let tutorial;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
   const ENTRY_GAP = 20;
   const DEFAULT_ITEM_WIDTH = 145;
-  const MIN_SPAWN_SPACING_RATIO = 0.16;
-  const OCCUPANCY_BONUS = 1;
   const MISS_PENALTY = 10;
   let beltWidth = window.innerWidth;
 
   const itemKey = (item) => item.name;
+  const reactSparky = (name, options) => window.dispatchEvent(new CustomEvent("sparky-reaction", { detail: { name, options } }));
+  const controlSparky = (type) => window.dispatchEvent(new CustomEvent("sparky-control", { detail: { type } }));
   const visualScaleFor = (item) => {
     if (/coin|marble|bangle/i.test(item.name)) return 0.82;
     if (/pencil|ruler|stick|candle|rope/i.test(item.name)) return 1.08;
@@ -38,29 +47,9 @@ export function createGame() {
     }
     return bag;
   };
-  const maxOnBelt = () => {
-    const start = level().occupancyStart ?? 2;
-    const target = level().occupancyTarget ?? 3;
-    const rampAt = level().occupancyRampAt ?? 2;
-    const responsiveLimit = beltWidth < 700 ? 3 : beltWidth < 1100 ? 4 : 6;
-    if (state.completedMastery >= rampAt) return Math.min(target + OCCUPANCY_BONUS, responsiveLimit);
-    if (start === 1 && state.completedMastery > 0) return Math.min(2 + OCCUPANCY_BONUS, target + OCCUPANCY_BONUS, responsiveLimit);
-    return Math.min(start + OCCUPANCY_BONUS, responsiveLimit);
-  };
-  const minOnBelt = () => Math.min(3, maxOnBelt());
-
+  const targetOnBelt = () => (beltWidth < 700 ? 5 : 6);
+  const spawnInterval = () => 1000 / (BELT_TRAVEL_RATE * targetOnBelt());
   const itemWidthFor = (width = beltWidth) => Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, width * 0.1));
-
-  function entryIsClear() {
-    const itemWidth = itemWidthFor();
-    // New items launch only after the previous item has travelled far enough
-    // into the lane. Once launched, every item moves independently, so a
-    // dragged/returning object can never create a queue at the belt exit.
-    const launchX = -itemWidth - ENTRY_GAP;
-    const itemSpacing = Math.max(itemWidth + ENTRY_GAP, beltWidth * MIN_SPAWN_SPACING_RATIO);
-    const launchClearance = launchX + itemSpacing;
-    return !state.activeItems.some((item) => (item.x ?? -itemWidth) < launchClearance);
-  }
 
   function syncItemPosition(item) {
     const element = document.querySelector(`[data-draggable-item][data-item-id="${item.id}"]`);
@@ -68,7 +57,7 @@ export function createGame() {
   }
 
   function advanceItems({ detail }) {
-    if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired || !detail?.dx) return;
+    if (state.paused || tutorial?.active || state.completedLevel || state.completedMastery >= state.totalRequired || !detail?.dx) return;
     beltWidth = detail.width;
     const itemWidth = itemWidthFor(detail.width);
     const moving = state.activeItems.filter((item) => item.beltState === "moving");
@@ -109,6 +98,7 @@ export function createGame() {
       message: missedItems.length > 1 ? `Missed ${missedItems.length}! −${MISS_PENALTY * missedItems.length}` : `Missed! −${MISS_PENALTY}`,
     };
     sounds.retry();
+    reactSparky("surprised");
     render();
     window.clearTimeout(feedbackTimer);
     feedbackTimer = window.setTimeout(() => {
@@ -154,13 +144,16 @@ export function createGame() {
   }
 
   function scheduleSpawn(delay = 0) {
+    if (tutorial?.active) return;
     if (spawnTimer) return;
+    const cadenceDelay = Math.max(0, nextSpawnAt - performance.now());
     spawnTimer = window.setTimeout(() => {
       spawnTimer = undefined;
-      if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired) return;
-      if (state.activeItems.length >= maxOnBelt()) return;
-      // Never place a new card on top of one that is still entering the lane.
-      if (!entryIsClear()) return scheduleSpawn(80 + Math.random() * 60);
+      if (state.paused || tutorial?.active || state.completedLevel || state.completedMastery >= state.totalRequired) return;
+      if (state.activeItems.length >= targetOnBelt()) {
+        nextSpawnAt = performance.now() + spawnInterval();
+        return scheduleSpawn();
+      }
       const source = pickNextItem();
       // A blocked entry or temporarily ineligible bag must retry; it must
       // never silently leave the conveyor under-populated.
@@ -182,19 +175,23 @@ export function createGame() {
         beltState: "moving",
       });
       render();
-      if (state.activeItems.length < maxOnBelt()) scheduleSpawn(120 + Math.random() * 80);
-    }, delay);
+      nextSpawnAt = performance.now() + spawnInterval();
+      scheduleSpawn();
+    }, Math.max(delay, cadenceDelay));
   }
 
   function ensureBeltPopulation() {
-    if (state.paused || state.completedLevel || state.completedMastery >= state.totalRequired) return;
-    if (state.activeItems.length < minOnBelt()) scheduleSpawn(120);
-    else if (state.activeItems.length < maxOnBelt()) scheduleSpawn(220 + Math.random() * 120);
+    if (state.paused || tutorial?.active || state.completedLevel || state.completedMastery >= state.totalRequired) return;
+    if (state.activeItems.length < targetOnBelt()) scheduleSpawn(120);
   }
 
   function loadBelt() {
+    // Warm only the active level. Later levels stay off the network until the
+    // player reaches them, while the browser can decode this level in parallel.
+    preloadLevelAssets(level());
     const carryWeakNames = new Set(state.carryWeakNames);
     state.activeItems = [];
+    nextSpawnAt = 0;
     state.spawnCount = 0;
     state.lastCategory = null;
     state.spawnBag = [];
@@ -218,13 +215,69 @@ export function createGame() {
     state.levelFirstTryCorrect = 0;
     state.levelScore = 0;
     state.hintCategory = null;
-    scheduleSpawn(550);
+    const forceTutorial = forceOpeningTutorial && state.levelIndex === 0;
+    forceOpeningTutorial = false;
+    const tutorialStarted = tutorial?.startForLevel(level(), state.levelIndex, { force: forceTutorial }) ?? false;
+    if (!tutorialStarted) scheduleSpawn(550);
   }
 
   function render() {
     renderHud(state, level());
     renderScene(state, level());
     renderGameUi(state, level());
+    requestAnimationFrame(() => tutorial?.active ? tutorial.render() : tutorial?.refreshLayout());
+  }
+
+  function spawnTutorialExample(source, mode) {
+    const laneWidth = document.querySelector("#belt-item-layer")?.getBoundingClientRect().width || beltWidth;
+    const width = itemWidthFor(laneWidth);
+    const id = `tutorial-${state.levelIndex}-${state.itemSerial += 1}`;
+    state.selectedItemId = null;
+    state.hintCategory = null;
+    state.activeItems = [{
+      ...source,
+      id,
+      spawnOrder: 1,
+      visualScale: visualScaleFor(source),
+      rotation: source.answer === "long" ? -5 : 0,
+      x: Math.max(width, laneWidth * 0.57 - width / 2),
+      width,
+      beltState: "tutorial",
+      tutorialMode: mode,
+    }];
+    return id;
+  }
+
+  function clearTutorialExample() {
+    state.activeItems = state.activeItems.filter((item) => !item.tutorialMode);
+    state.selectedItemId = null;
+    state.hintCategory = null;
+    state.placed = null;
+  }
+
+  function practiceCorrect(item, category) {
+    state.activeItems = state.activeItems.filter((candidate) => candidate.id !== item.id);
+    state.selectedItemId = null;
+    state.hintCategory = null;
+    state.placed = { art: item.art, assetSet: item.assetSet, category };
+    sounds.drop();
+    sounds.success();
+    render();
+  }
+
+  function practiceWrong(targetCategory) {
+    const item = state.activeItems.find((candidate) => candidate.tutorialMode);
+    if (item) item.beltState = "tutorial";
+    state.selectedItemId = null;
+    state.hintCategory = targetCategory;
+    sounds.retry();
+    render();
+  }
+
+  function completeTutorial() {
+    clearTutorialExample();
+    render();
+    scheduleSpawn(260);
   }
 
   function finishLevel() {
@@ -236,13 +289,63 @@ export function createGame() {
     state.campaignStars += state.stars;
     state.completedLevel = true;
     state.feedback = { type: "complete", message: "Wonderful sorting!" };
+    if (persistProgress) {
+      saveHighestLevel(Math.min(state.levelIndex + 2, MATH_LEVELS.length), MATH_LEVELS.length);
+    }
     render();
+    window.dispatchEvent(new CustomEvent("success-dance-start", { detail: { stars: state.stars } }));
+    sounds.startSuccessMusic();
     sounds.complete(state.stars);
+  }
+
+  function showSuccessPreview(levelNumber = 1, stars = 3, score) {
+    persistProgress = false;
+    const previewLevel = Math.max(1, Math.min(MATH_LEVELS.length, Math.round(Number(levelNumber) || 1)));
+    const previewStars = Math.max(1, Math.min(3, Math.round(Number(stars) || 3)));
+    const levelIndex = previewLevel - 1;
+    const targetLevel = MATH_LEVELS[levelIndex];
+    const starBaseline = targetLevel.goal * 10 + Math.floor(targetLevel.goal / 5) * 5;
+    const defaultScore = previewStars === 3
+      ? starBaseline
+      : previewStars === 2
+        ? Math.ceil(starBaseline * 0.65)
+        : Math.floor(starBaseline * 0.3);
+
+    tutorial?.stop({ clear: true });
+    window.clearTimeout(advanceTimer);
+    window.clearTimeout(feedbackTimer);
+    window.clearTimeout(spawnTimer);
+    spawnTimer = undefined;
+    window.dispatchEvent(new CustomEvent("success-dance-stop"));
+    sounds.stopSuccessMusic();
+
+    state.screen = "play";
+    state.levelIndex = levelIndex;
+    state.level = previewLevel;
+    state.totalRequired = targetLevel.goal;
+    state.completedMastery = targetLevel.goal;
+    state.levelScore = Number.isFinite(Number(score)) ? Math.round(Number(score)) : defaultScore;
+    state.score = state.levelScore;
+    state.stars = previewStars;
+    state.feedback = { type: "complete", message: "Wonderful sorting!" };
+    state.activeItems = [];
+    state.selectedItemId = null;
+    state.placed = null;
+    state.completedLevel = true;
+    state.paused = false;
+    state.restartConfirm = false;
+    state.atHome = false;
+    render();
+    window.dispatchEvent(new CustomEvent("success-dance-start", { detail: { stars: previewStars, preview: true } }));
+    sounds.startSuccessMusic();
+    sounds.complete(previewStars);
+    return { level: previewLevel, stars: previewStars, score: state.levelScore, title: targetLevel.title };
   }
 
   function choose(itemId, category) {
     const activeItem = state.activeItems.find((candidate) => String(candidate.id) === String(itemId));
     if (state.paused || state.completedLevel || state.placed || !activeItem) return;
+    if (tutorial?.handleChoice(activeItem, category)) return;
     const correct = activeItem.answer === category;
     if (correct) {
       const mastery = state.mastery[itemKey(activeItem)];
@@ -285,6 +388,16 @@ export function createGame() {
       // The dropped item is now owned by the short bin animation, not the belt.
       render();
       sounds.drop();
+      if (state.completedMastery < state.totalRequired) {
+        // Preserve the requested nod/thumb cadence, while reserving the new
+        // GDD happy/open-hands reaction for each PERFECT five-answer streak.
+        const reaction = state.correctStreak % 5 === 0
+          ? "happy"
+          : state.correctStreak % 3 === 0
+            ? "correct"
+            : "nod";
+        reactSparky(reaction);
+      }
       ensureBeltPopulation();
       window.clearTimeout(advanceTimer);
       window.clearTimeout(feedbackTimer);
@@ -332,6 +445,7 @@ export function createGame() {
       category,
     };
     sounds.retry();
+    reactSparky("thinking");
     render();
     const returnLevel = state.levelIndex;
     const hintDuration = mastery.wrong >= 2 ? 900 : 320;
@@ -345,6 +459,9 @@ export function createGame() {
   }
 
   function nextLevel() {
+    window.dispatchEvent(new CustomEvent("success-dance-stop"));
+    sounds.stopSuccessMusic();
+    tutorial?.stop({ clear: true });
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
@@ -371,16 +488,24 @@ export function createGame() {
   }
 
   function restart() {
+    window.dispatchEvent(new CustomEvent("success-dance-stop"));
+    sounds.stopSuccessMusic();
+    tutorial?.stop({ clear: true });
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
     spawnTimer = undefined;
+    if (persistProgress) clearGameSave();
     Object.assign(state, createInitialState());
+    forceOpeningTutorial = true;
     loadBelt();
     render();
   }
 
   function retryLevel() {
+    window.dispatchEvent(new CustomEvent("success-dance-stop"));
+    sounds.stopSuccessMusic();
+    tutorial?.stop({ clear: true });
     window.clearTimeout(advanceTimer);
     window.clearTimeout(feedbackTimer);
     window.clearTimeout(spawnTimer);
@@ -397,14 +522,21 @@ export function createGame() {
     state.atHome = false;
     loadBelt();
     sounds.resumeMusic();
+    controlSparky("resume");
     render();
   }
 
   function setPaused(value) {
     state.paused = value;
     state.restartConfirm = false;
-    if (state.paused) sounds.pauseMusic();
-    else sounds.resumeMusic();
+    if (state.paused) {
+      sounds.pauseMusic();
+      tutorial?.pause();
+    } else {
+      sounds.resumeMusic();
+      tutorial?.resume();
+    }
+    controlSparky(state.paused ? "pause" : "resume");
     render();
   }
 
@@ -412,7 +544,10 @@ export function createGame() {
     state.paused = true;
     state.restartConfirm = false;
     state.atHome = true;
+    sounds.stopSuccessMusic();
     sounds.pauseMusic();
+    tutorial?.pause();
+    controlSparky("pause");
     render();
     window.dispatchEvent(new CustomEvent("game-home"));
   }
@@ -447,6 +582,19 @@ export function createGame() {
 
   function start() {
     window.addEventListener("conveyor-motion", advanceItems);
+    window.addEventListener("sparky-animation-frame", ({ detail }) => {
+      // Happy sheet frame 1 is the first pose where Sparky's mouth opens.
+      if (detail?.name === "happy" && detail.step === 1) sounds.happy();
+      // The short "ho" lands once Sparky reaches the strongest thinking pose.
+      if (detail?.name === "thinking" && detail.step === 3) sounds.thinking();
+      // Surprised frame 1 is the first open-mouth pose after a missed item.
+      if (detail?.name === "surprised" && detail.step === 1) sounds.surprised();
+      // Voice begins exactly on the first open-mouth presentation frame.
+      if (tutorial?.active && detail?.step === 2) {
+        if (detail.name === "presentingDomo") sounds.presentingDomo();
+        if (detail.name === "presentingDomoDomo") sounds.presentingDomoDomo();
+      }
+    });
     document.querySelector("#sound-button").addEventListener("click", () => {
       state.muted = !state.muted;
       sounds.setMuted(state.muted);
@@ -469,6 +617,9 @@ export function createGame() {
       if (!["Enter", " "].includes(event.key) || state.paused || state.completedLevel || state.placed) return;
       const itemTarget = event.target.closest?.("[data-draggable-item]");
       if (itemTarget) {
+        if (!tutorial?.canInteract(itemTarget.dataset.itemId)) return;
+        controlSparky("activity");
+        tutorial?.noteInteraction(false);
         state.selectedItemId = itemTarget.dataset.itemId;
         sounds.pickup();
         render();
@@ -486,6 +637,9 @@ export function createGame() {
     document.addEventListener("pointerdown", (event) => {
       const target = event.target.closest("[data-draggable-item]");
       if (!target || state.paused || state.completedLevel || state.placed) return;
+      if (!tutorial?.canInteract(target.dataset.itemId)) return;
+      controlSparky("activity");
+      tutorial?.noteInteraction(true);
       const layer = document.querySelector("#belt-item-layer");
       const bounds = layer.getBoundingClientRect();
       const itemBounds = target.getBoundingClientRect();
@@ -511,6 +665,7 @@ export function createGame() {
       drag.target.style.bottom = "auto";
       const activeItem = state.activeItems.find((item) => String(item.id) === String(drag.target.dataset.itemId));
       if (activeItem) activeItem.x = Math.max(-drag.width * 0.25, Math.min(x, drag.bounds.width - drag.width * 0.75));
+      tutorial?.refreshLayout();
       document.querySelectorAll("[data-drop-category]").forEach((bin) => {
         const rect = bin.getBoundingClientRect();
         const isInside = event.clientX >= rect.left && event.clientX <= rect.right
@@ -529,20 +684,24 @@ export function createGame() {
       if (droppedOn) choose(draggedItemId, droppedOn.dataset.dropCategory);
       else {
         const activeItem = state.activeItems.find((item) => String(item.id) === String(draggedItemId));
-        if (activeItem) activeItem.beltState = "moving";
+        if (activeItem) activeItem.beltState = activeItem.tutorialMode ? "tutorial" : "moving";
         render();
+        tutorial?.noteInteraction(false);
       }
     });
     document.addEventListener("pointercancel", (event) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
       const activeItem = state.activeItems.find((item) => String(item.id) === String(drag.target.dataset.itemId));
-      if (activeItem) activeItem.beltState = "moving";
+      if (activeItem) activeItem.beltState = activeItem.tutorialMode ? "tutorial" : "moving";
       drag.target.releasePointerCapture?.(event.pointerId);
       document.querySelectorAll("[data-drop-category]").forEach((bin) => bin.classList.remove("sorting-bin--active-drop"));
       drag = null;
       render();
+      tutorial?.noteInteraction(false);
     });
     bindInput(dispatch);
+    sounds.setMuted(state.muted);
+    document.querySelector("#sound-button").setAttribute("aria-pressed", String(state.muted));
     loadBelt();
     // Self-healing guard: a missed timer or blocked entrance gets another
     // opportunity every short tick, while the guarded scheduler avoids floods.
@@ -554,5 +713,17 @@ export function createGame() {
     sounds.startMusic();
   }
 
-  return { start, dispatch, state, enableAudio };
+  tutorial = new TutorialController({
+    layer: document.querySelector("#tutorial-layer"),
+    stage: document.querySelector("#game-stage"),
+    spawnExample: spawnTutorialExample,
+    clearExample: clearTutorialExample,
+    requestRender: render,
+    onPracticeCorrect: practiceCorrect,
+    onPracticeWrong: practiceWrong,
+    onComplete: completeTutorial,
+    react: reactSparky,
+  });
+
+  return { start, dispatch, state, enableAudio, showSuccessPreview };
 }

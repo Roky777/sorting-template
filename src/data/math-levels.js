@@ -129,11 +129,43 @@ const levelTuning = [
   { goal: 20, occupancyStart: 3, occupancyTarget: 5, occupancyRampAt: 0, intro: "Motion Master: sort every picture independently." },
 ];
 
+function buildTutorial(level, tuning, levelIndex) {
+  const representatives = level.bins
+    .map((bin) => level.items.find((candidate) => candidate.answer === bin.id))
+    .filter(Boolean);
+  const demonstration = representatives[0] ?? level.items[0];
+  const interactive = representatives.find((candidate) => candidate.name !== demonstration?.name)
+    ?? level.items.find((candidate) => candidate.name !== demonstration?.name)
+    ?? demonstration;
+
+  return {
+    concept: level.title,
+    intro: `${level.title}?`,
+    mandatory: levelIndex === 0,
+    steps: [
+      { type: "concept", instruction: `${level.title}?` },
+      {
+        type: "demonstration",
+        objectName: demonstration.name,
+        instruction: `${demonstration.name} → ${level.bins.find((bin) => bin.id === demonstration.answer)?.label ?? demonstration.answer}`,
+      },
+      {
+        type: "interactive",
+        objectName: interactive.name,
+        instruction: `Sort the ${interactive.name}!`,
+        allowHints: true,
+      },
+      { type: "completion", instruction: "You're ready!" },
+    ],
+  };
+}
+
 // Every item carries its source art set.  Rendering stays reusable while the
 // assets follow the supplied Grade 1 Maths folder structure for Levels 1–9.
 export const MATH_LEVELS = LEVELS.map((level, index) => ({
   ...level,
   ...levelTuning[index],
+  tutorial: buildTutorial(level, levelTuning[index], index),
   assetSet: `level${index + 1}`,
   requiredCorrectPerItem: 2,
   bins: level.bins.map((entry) => ({

@@ -16,15 +16,15 @@ A dependency-free browser sorting game based on the supplied Grade 1 GDD. Serve 
 | 8 | Roll, Slide or Both | 18 | On |
 | 9 | Motion Master | 20 | Off |
 
-The conveyor displays two items on compact screens, three on medium screens, and up to five on wide screens. Its movement speed is 290 px/s (twice the original 145 px/s). Wrong answers and missed objects each deduct 10 points. Sparky is deliberately represented by a styled placeholder until approved character art is supplied.
+The responsive conveyor keeps five or six evenly spaced items in play at a consistent world-space speed. Wrong answers and missed objects each deduct 10 points. Sparky uses event-driven sprite animations for tutorials, correct answers, mistakes, idle reactions, and the success celebration.
 
-Normal play intentionally avoids large introduction and milestone popups so the conveyor, sorting bins, progress, and essential feedback remain unobstructed.
+The first level includes a forced, skippable learn-by-doing tutorial. Progress is saved locally, and the game resumes from the highest unlocked level. Runtime assets are loaded in stages: the start screen first, the active level after Play, and reaction/success assets only when needed.
 
 ## Project map
 
 ```
 assets/
-  characters/    # reserved for future approved character art
+  characters/    # production-ready Sparky animation sheets
   backgrounds/   # level backdrops and scenery
   items/         # matchable objects
   ui/            # buttons, icons, HUD artwork
@@ -42,4 +42,4 @@ styles/          # reset, shared rules, game layout
 
 ## Adding assets
 
-Place new files in the matching folder under `assets/`, then give them a stable key in `src/data/assets.js`. Game modules should use that key rather than hard-coded filenames.
+Place production files in the matching folder under `assets/`, then give them a stable key in `src/data/assets.js`. Game modules should use that key rather than hard-coded filenames. Keep raw exports and alternate takes outside the committed runtime set.

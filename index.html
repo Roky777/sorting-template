@@ -24,7 +24,8 @@
           </button>
         </section>
         <div id="scene" class="scene scene--placeholder" aria-label="Game scene">
-          <img class="factory-background" src="assets/backgrounds/shape-lab-factory.png" alt="" />
+          <img class="factory-background" data-src="assets/backgrounds/shape-lab-factory.png" alt="" />
+          <div id="sparky" class="sparky" aria-hidden="true"><div class="sparky__viewport"></div></div>
           <div class="conveyor" aria-hidden="true">
             <div class="conveyor__rail conveyor__rail--top"></div>
             <div class="conveyor__track">
@@ -45,23 +46,24 @@
 
         <header class="hud" aria-label="Game status and controls">
           <div class="hud__level">
-            <img src="assets/ui/ui-level-panel.png" alt="" />
+            <img data-src="assets/ui/ui-level-panel.png" alt="" />
             <span id="level-icon">Level 1 / 9</span><small id="level-title">Long or Round</small>
           </div>
           <div class="progress-card" aria-label="Mastery progress">
-            <img src="assets/ui/ui-progress-bar.png" alt="" />
+            <img id="progress-art" class="progress-card__art" data-src="assets/ui/ui-progress-bar.png" alt="" />
             <div class="progress-card__track" role="progressbar" aria-label="Level mastery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="mastery-fill"></span></div>
             <span id="mastery-text">0 / 15</span>
           </div>
-          <div id="score-card" class="hud__score" aria-label="Score"><img src="assets/ui/ui-score-badge.png" alt="" /><span id="score-text">0</span></div>
-          <button id="sound-button" class="icon-button icon-button--sound" type="button" aria-label="Toggle sound"><img src="assets/ui/ui-music-button.png" alt="" /></button>
+          <div id="score-card" class="hud__score" aria-label="Score"><img data-src="assets/ui/ui-score-badge.png" alt="" /><span id="score-text">0</span></div>
+          <button id="sound-button" class="icon-button icon-button--sound" type="button" aria-label="Toggle sound"><img data-src="assets/ui/ui-music-button.png" alt="" /></button>
           <button id="back-button" class="icon-button icon-button--pause" type="button" aria-label="Pause game"><span aria-hidden="true"></span></button>
         </header>
 
         <section id="game-ui" class="game-ui" aria-label="Game interaction area"></section>
+        <section id="tutorial-layer" class="tutorial-layer" aria-live="polite" hidden></section>
       </section>
     </main>
 
-    <script type="module" src="src/main.js"></script>
+    <script type="module" src="src/main.js?v=20260922-lazy-load-1"></script>
   </body>
 </html>

@@ -32,20 +32,27 @@ export function renderGameUi(state, level) {
     root.append(feedback);
   }
   if (state.completedLevel) {
-    const starSlots = state.stars === 1 ? [2] : state.stars === 2 ? [1, 3] : [1, 2, 3];
     const success = document.createElement("section");
     success.className = "success-screen";
     success.setAttribute("aria-label", `Level complete. ${state.stars} out of 3 stars.`);
     success.innerHTML = `
       <img class="success-screen__background" src="assets/ui/start-background.png" alt="" />
-      <img class="success-screen__mascot" src="assets/ui/1ed7effe2a9a9491769691f9df97b9b8a25a4021.png" alt="Sparky celebrating" />
-      <img class="success-screen__title" src="assets/ui/image 18.png" alt="All sorted! Great job!" />
-      <div class="success-screen__stars" aria-hidden="true">
-        ${starSlots.map((slot, index) => `<span class="success-star success-star--${slot}" style="--star-index:${index}"><img src="assets/ui/image 19.png" alt="" /></span>`).join("")}
-        ${state.stars === 3 ? '<img class="success-stars__complete" src="assets/ui/image 19.png" alt="" />' : ""}
+      <div class="success-dance" role="button" tabindex="0" aria-label="Restart Sparky's moonwalk">
+        <div class="success-dance__viewport"><img class="success-dance__sheet" src="assets/characters/moon_walk_normalized.png" alt="" /></div>
+        <div class="success-dance__effects" aria-hidden="true"></div>
       </div>
-      <p class="success-screen__score">Score: ${state.levelScore}</p>
-      <div class="success-screen__actions"></div>`;
+      <img class="success-screen__title" src="assets/ui/image 18.png" alt="All sorted! Great job!" />
+      <div class="success-screen__reward">
+        <div class="success-screen__stars" aria-label="${state.stars} out of 3 stars">
+          ${[
+            "success-star-1.png",
+            "success-star-2.png",
+            "success-star-3.png",
+          ].map((source, index) => `<span class="success-star success-star--${index + 1}${index < state.stars ? " success-star--earned" : ""}" style="--star-index:${index}"><img src="assets/ui/${source}" alt="" /></span>`).join("")}
+        </div>
+        <p class="success-screen__score"><span>Level score</span><strong>${state.levelScore}</strong></p>
+        <div class="success-screen__actions"></div>
+      </div>`;
     const actions = success.querySelector(".success-screen__actions");
     const starBaseline = state.totalRequired * 10 + Math.floor(state.totalRequired / 5) * 5;
     if (state.levelScore < starBaseline * 0.45) {
@@ -58,7 +65,7 @@ export function renderGameUi(state, level) {
     const next = document.createElement("button");
     next.className = "success-screen__button";
     next.dataset.action = "next";
-    next.textContent = state.level === 9 ? "Finish" : "Next Level";
+    next.innerHTML = `<span>${state.level === 9 ? "Finish" : "Next Level"}</span><i aria-hidden="true">›</i>`;
     actions.append(next);
     root.append(success);
     return;
