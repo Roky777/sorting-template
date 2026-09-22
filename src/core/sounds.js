@@ -96,11 +96,16 @@ export function createSounds() {
     const startedAt = performance.now();
     const gameStart = gamePlayer.volume;
     const successStart = successPlayer.volume;
+    const validVolume = (value) => Math.max(0, Math.min(1, value));
     const tick = (now) => {
-      const progress = Math.min(1, (now - startedAt) / duration);
+      // Some browsers can supply an animation-frame timestamp fractionally
+      // earlier than a performance.now() captured immediately beforehand.
+      // Clamp both the timeline and its output so HTMLMediaElement never sees
+      // an invalid negative/greater-than-one floating-point volume.
+      const progress = Math.max(0, Math.min(1, (now - startedAt) / duration));
       const eased = 1 - (1 - progress) ** 3;
-      gamePlayer.volume = gameStart + (gameVolume - gameStart) * eased;
-      successPlayer.volume = successStart + (successVolume - successStart) * eased;
+      gamePlayer.volume = validVolume(gameStart + (gameVolume - gameStart) * eased);
+      successPlayer.volume = validVolume(successStart + (successVolume - successStart) * eased);
       if (progress < 1) musicFadeFrame = requestAnimationFrame(tick);
       else {
         musicFadeFrame = undefined;
