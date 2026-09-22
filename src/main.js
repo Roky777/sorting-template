@@ -1,6 +1,7 @@
 import { createGame } from "./core/game.js";
 import { startConveyorAnimation } from "./render/conveyor.js";
-import { hydrateDeferredImages } from "./data/assets.js";
+import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js";
+import { getLevel } from "./data/math-levels.js";
 
 const launchParams = new URLSearchParams(window.location.search);
 const requestedLevel = Number(launchParams.get("level"));
@@ -58,17 +59,30 @@ if (Number.isInteger(requestedLevel) && requestedLevel >= 1 && requestedLevel <=
 
 let transitioning = false;
 let gameBooted = false;
+let preparationRequest;
 let bootRequest;
 const startScreen = document.querySelector("#start-screen");
+const startButton = document.querySelector("#start-button");
+
+function prepareGame() {
+  if (preparationRequest) return preparationRequest;
+  preparationRequest = Promise.all([
+    hydrateDeferredImages(document.querySelector("#game-stage")),
+    loadControllers(),
+    preloadLevelAssets(getLevel(game.state.levelIndex)),
+    preloadImage(assets.characters.idle),
+    preloadImage(assets.characters.presentation),
+    preloadImage(assets.ui.conveyorRims),
+  ]).then(() => {
+    document.body.classList.add("game-runtime-loaded");
+  });
+  return preparationRequest;
+}
 
 function bootGame() {
   if (gameBooted) return Promise.resolve();
   if (bootRequest) return bootRequest;
-  bootRequest = Promise.all([
-    hydrateDeferredImages(document.querySelector("#game-stage")),
-    loadControllers(),
-  ]).then(() => {
-    document.body.classList.add("game-runtime-loaded");
+  bootRequest = prepareGame().then(() => {
     gameBooted = true;
     sparky.start();
     sparkyFrameTime = performance.now();
@@ -77,6 +91,24 @@ function bootGame() {
   });
   return bootRequest;
 }
+
+function scheduleWarmup() {
+  const warmup = () => prepareGame().catch((error) => {
+    // A click retries the boot path and keeps the start art visible if an
+    // unusually early/background preload is interrupted by the browser.
+    preparationRequest = undefined;
+    console.warn("Game warm-up was interrupted; it will retry on Play.", error);
+  });
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(warmup, { timeout: 700 });
+  } else {
+    window.setTimeout(warmup, 120);
+  }
+}
+
+// Let the start screen paint first, then use the child's viewing time to make
+// the first playable frame ready before Play is normally pressed.
+requestAnimationFrame(() => requestAnimationFrame(scheduleWarmup));
 
 async function openSuccessPreview(levelNumber, stars = 3, score) {
   transitioning = false;
@@ -113,25 +145,37 @@ if (Number.isInteger(requestedSuccessLevel) && requestedSuccessLevel >= 1 && req
   requestAnimationFrame(() => openSuccessPreview(requestedSuccessLevel, requestedStars, requestedScore));
 }
 
-document.querySelector("#start-button").addEventListener("click", () => {
+startButton.addEventListener("click", async () => {
   if (transitioning) return;
   transitioning = true;
+  startButton.disabled = true;
+  startButton.setAttribute("aria-busy", "true");
   game.enableAudio();
-  startScreen.classList.add("start-screen--leaving");
-  const ready = gameBooted ? Promise.resolve() : bootGame();
-  window.setTimeout(async () => {
-    await ready;
+
+  try {
+    // Never fade to an empty/half-loaded game. Usually this has already
+    // completed during the start-screen warm-up and resolves immediately.
+    await bootGame();
+    startScreen.classList.add("start-screen--leaving");
+    await new Promise((resolve) => window.setTimeout(resolve, 260));
     startScreen.hidden = true;
     startScreen.classList.remove("start-screen--leaving");
-    if (gameBooted) game.dispatch({ type: "resume" });
+    game.dispatch({ type: "resume" });
+  } catch (error) {
+    console.error("Unable to start the game.", error);
+  } finally {
+    startButton.disabled = false;
+    startButton.removeAttribute("aria-busy");
     transitioning = false;
-  }, 260);
+  }
 });
 
 window.addEventListener("game-home", () => {
   successDance?.stop();
   sparky?.pause();
   transitioning = false;
+  startButton.disabled = false;
+  startButton.removeAttribute("aria-busy");
   startScreen.hidden = false;
   startScreen.classList.remove("start-screen--leaving");
 });
