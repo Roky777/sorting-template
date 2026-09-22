@@ -1,4 +1,7 @@
+import { getStarThresholds } from "../core/scoring.js";
+
 let previousScore;
+let previousLevel;
 
 // Measured directly from assets/ui/ui-progress-bar.png (2172 x 400).
 // These bounds describe only the recessed dark-brown track, never the frame
@@ -58,13 +61,25 @@ export function renderHud(state, level) {
   track.setAttribute("aria-valuenow", String(Math.round(clampedProgress * 100)));
   document.querySelector("#mastery-text").textContent = `${state.completedMastery} / ${state.totalRequired}`;
   const scoreCard = document.querySelector("#score-card");
-  document.querySelector("#score-text").textContent = String(state.score);
-  if (previousScore !== undefined && state.score !== previousScore) {
+  const displayedScore = state.levelScore;
+  if (state.level !== previousLevel) {
+    previousLevel = state.level;
+    previousScore = undefined;
+  }
+  document.querySelector("#score-text").textContent = String(displayedScore);
+  const starTarget = document.querySelector("#star-target");
+  const { twoStars, threeStars } = getStarThresholds(state.totalRequired);
+  if (state.levelScore >= threeStars) starTarget.textContent = "3★ READY!";
+  else if (state.levelScore >= twoStars) starTarget.textContent = `3★ AT ${threeStars}`;
+  else starTarget.textContent = `2★ AT ${twoStars}`;
+  starTarget.classList.toggle("hud__star-target--ready", state.levelScore >= threeStars);
+  starTarget.setAttribute("aria-label", `Two stars at ${twoStars} points. Three stars at ${threeStars} points.`);
+  if (previousScore !== undefined && displayedScore !== previousScore) {
     scoreCard.classList.remove("hud__score--gain", "hud__score--penalty");
     void scoreCard.offsetWidth;
-    scoreCard.classList.add(state.score > previousScore ? "hud__score--gain" : "hud__score--penalty");
+    scoreCard.classList.add(displayedScore > previousScore ? "hud__score--gain" : "hud__score--penalty");
   }
-  previousScore = state.score;
+  previousScore = displayedScore;
   const soundButton = document.querySelector("#sound-button");
   soundButton.classList.toggle("icon-button--muted", state.muted);
   soundButton.setAttribute("aria-pressed", String(state.muted));

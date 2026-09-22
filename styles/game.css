@@ -457,6 +457,8 @@ body.game-runtime-loaded .conveyor__front-beam {
 .hud__level small { top: 64%; transform: translateY(-50%); font-size: clamp(.54rem, 1.08cqw, 1rem); font-weight: 600; }
 .hud__score { min-width: 0; }
 .hud__score span { position: absolute; z-index: 1; top: 50%; right: 8%; width: 48%; transform: translateY(-50%); color: #713317; font-size: clamp(.85rem, 2.05cqw, 2rem); line-height: 1; text-align: center; text-shadow: 0 .08em 0 #ffe4a5; white-space: nowrap; }
+.hud__star-target { position: absolute; z-index: 3; top: 82%; left: 50%; min-width: 58%; padding: .18em .55em .22em; border: max(1px, .08cqw) solid #fff0a8; border-radius: 999px; transform: translateX(-50%); background: linear-gradient(180deg, #174f93, #0a326d); color: #fff7cf; font-size: clamp(.46rem, .78cqw, .76rem); font-weight: 900; line-height: 1; letter-spacing: .035em; text-align: center; text-shadow: 0 .09em 0 #062958; white-space: nowrap; box-shadow: 0 .12em .25em rgb(10 48 91 / 32%); }
+.hud__star-target--ready { background: linear-gradient(180deg, #27ad57, #137b39); color: #fffbd7; }
 .hud__score--gain { animation: score-gain 300ms ease-out both; }
 .hud__score--penalty {
   animation: score-penalty 360ms ease-out both;

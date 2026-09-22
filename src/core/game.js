@@ -10,6 +10,7 @@ import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
 import { preloadLevelAssets } from "../data/assets.js";
 import { createGameAnalytics } from "./analytics.js";
+import { getPerfectLevelScore, getStarsForScore } from "./scoring.js";
 
 export function createGame({ persistProgress = true, gameId = "sorting-template" } = {}) {
   const state = createInitialState();
@@ -338,9 +339,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   function finishLevel() {
     if (state.completedLevel) return;
     state.activeItems = [];
-    const starBaseline = state.totalRequired * 10 + Math.floor(state.totalRequired / 5) * 5;
-    const starRatio = starBaseline ? state.levelScore / starBaseline : 1;
-    state.stars = starRatio >= 0.8 ? 3 : starRatio >= 0.45 ? 2 : 1;
+    state.stars = getStarsForScore(state.levelScore, state.totalRequired);
     state.campaignStars += state.stars;
     state.completedLevel = true;
     analytics.completeLevel({
@@ -366,7 +365,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     const previewStars = Math.max(1, Math.min(3, Math.round(Number(stars) || 3)));
     const levelIndex = previewLevel - 1;
     const targetLevel = MATH_LEVELS[levelIndex];
-    const starBaseline = targetLevel.goal * 10 + Math.floor(targetLevel.goal / 5) * 5;
+    const starBaseline = getPerfectLevelScore(targetLevel.goal);
     const defaultScore = previewStars === 3
       ? starBaseline
       : previewStars === 2

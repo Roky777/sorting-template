@@ -1,4 +1,4 @@
-import { createGame } from "./core/game.js?v=20260923-analytics-1";
+import { createGame } from "./core/game.js?v=20260923-star-target-2";
 import { startConveyorAnimation } from "./render/conveyor.js";
 import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js";
 import { getLevel } from "./data/math-levels.js";
