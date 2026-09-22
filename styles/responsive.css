@@ -1,0 +1,263 @@
+/* Shared landscape responsiveness for the sorter template and all variants. */
+body {
+  width: 100%;
+  height: 100dvh;
+  touch-action: manipulation;
+}
+
+.game-shell {
+  height: 100svh;
+  height: 100dvh;
+}
+
+.game-stage {
+  width: 100%;
+  max-width: 100%;
+  height: 100svh;
+  height: 100dvh;
+  max-height: 100%;
+}
+
+/* Keep transparent square title/character canvases bounded by screen height. */
+.start-screen__logo {
+  top: -4%;
+  width: clamp(10rem, min(36cqw, 64cqh), 39rem);
+}
+
+.start-screen__character {
+  bottom: 6%;
+  width: clamp(8rem, min(28cqw, 48cqh), 29rem);
+}
+
+.start-screen__play {
+  bottom: max(7%, env(safe-area-inset-bottom));
+  width: clamp(7rem, min(22.5cqw, 35cqh), 23rem);
+}
+
+/* Keep Sparky and gameplay bins readable on both tablets and short phones. */
+.sparky {
+  width: clamp(7.5rem, min(19cqw, 46cqh), 17rem);
+}
+
+.sorting-bins {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sorting-bins[data-count="2"] .sorting-bin {
+  flex-basis: min(23cqw, 44cqh);
+  width: min(23cqw, 44cqh);
+}
+
+.sorting-bins[data-count="3"] .sorting-bin {
+  flex-basis: min(18cqw, 35cqh);
+  width: min(18cqw, 35cqh);
+}
+
+.sorting-bins[data-count="4"] {
+  gap: 1.25cqw;
+  padding-inline: 1.5cqw;
+}
+
+.sorting-bins[data-count="4"] .sorting-bin {
+  flex-basis: min(15.5cqw, 31cqh);
+  width: min(15.5cqw, 31cqh);
+}
+
+.sorting-bins[data-count="5"] {
+  gap: .9cqw;
+  padding-inline: 1.1cqw;
+}
+
+.sorting-bins[data-count="5"] .sorting-bin {
+  flex-basis: min(17cqw, 38cqh);
+  width: min(17cqw, 38cqh);
+}
+
+.sorting-bin__category-icon {
+  top: 32%;
+  width: 30%;
+  height: 39%;
+}
+
+.sorting-bin__category-label {
+  top: 74.8%;
+  bottom: auto;
+  display: grid;
+  place-items: center;
+  height: 16.5%;
+  line-height: .95;
+}
+
+.sorting-bins[data-count="5"] .sorting-bin__category-label {
+  right: 17%;
+  left: 17%;
+  font-size: clamp(.58rem, 1.05cqw, 1rem);
+}
+
+/* The pause-panel PNG has a large transparent canvas. Height-based sizing
+   keeps the complete card on screen; matching controls preserve hit targets. */
+.pause-screen__mascot {
+  top: 13%;
+  left: 18%;
+  width: min(34cqw, 62cqh);
+  transform: none;
+}
+
+.pause-screen__panel {
+  top: 2%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: auto;
+  height: 96vh;
+  height: 96cqh;
+  transform: translateX(-50%);
+}
+
+.pause-screen__controls {
+  top: 2%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: 128.04vh;
+  width: 128.04cqh;
+  height: 96vh;
+  height: 96cqh;
+  transform: translateX(-50%);
+}
+
+.pause-screen__hotspot {
+  left: 35.3%;
+  width: 32.7%;
+  height: 10.7%;
+}
+
+.pause-screen__hotspot--resume { top: 43.4%; }
+.pause-screen__hotspot--restart { top: 55.6%; }
+.pause-screen__hotspot--home { top: 70%; }
+
+/* Mini's Market uses a wrapper around the same pause artwork. */
+.pause-screen__menu {
+  top: 2%;
+  left: 50%;
+  width: 128.04vh;
+  width: 128.04cqh;
+  height: 96vh;
+  height: 96cqh;
+  aspect-ratio: auto;
+  transform: translateX(-50%);
+}
+
+.pause-screen__menu .pause-screen__panel,
+.pause-screen__menu .pause-screen__controls {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+
+@keyframes pause-panel-arrive {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6%) scale(.94); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+
+@keyframes pause-mascot-arrive {
+  from { opacity: 0; transform: translateX(-12%); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Safe areas and height caps for HUD and reward screens. */
+.hud {
+  padding-top: max(clamp(.35rem, .7cqw, .7rem), env(safe-area-inset-top));
+  padding-right: max(clamp(.5rem, 1.25cqw, 1.25rem), env(safe-area-inset-right));
+  padding-left: max(clamp(.5rem, 1.25cqw, 1.25rem), env(safe-area-inset-left));
+}
+
+.success-dance {
+  width: clamp(10rem, min(27cqw, 65cqh), 31rem);
+}
+
+.success-screen__title {
+  width: min(43cqw, 92cqh, 46rem);
+}
+
+.success-screen__reward {
+  width: min(42cqw, 92cqh, 44rem);
+}
+
+.success-star {
+  width: min(9cqw, 20cqh, 9rem);
+}
+
+.success-screen__score {
+  width: min(24cqw, 54cqh, 25rem);
+}
+
+.success-screen__button {
+  width: min(22cqw, 50cqh, 23rem);
+}
+
+@container (min-aspect-ratio: 2 / 1) {
+  .hud {
+    --hud-control-height: clamp(2.7rem, 14cqh, 4.8rem);
+    padding-top: max(.35rem, env(safe-area-inset-top));
+  }
+
+  .pause-confirm {
+    top: 50%;
+    width: min(42cqw, 78cqh, 25rem);
+    padding: min(2cqw, 3.5cqh);
+    transform: translate(-50%, -50%);
+  }
+
+  .success-screen__reward {
+    top: 33cqh;
+    gap: 1.2cqh;
+  }
+
+  .success-screen__button {
+    min-height: max(2.8rem, 10cqh);
+  }
+}
+
+@container (max-aspect-ratio: 3 / 2) {
+  .success-dance {
+    left: 24%;
+    width: min(38cqw, 54cqh);
+  }
+
+  .success-screen__title {
+    top: 7cqh;
+    left: 67%;
+    width: min(52cqw, 68cqh);
+  }
+
+  .success-screen__reward {
+    top: 34cqh;
+    left: 67%;
+    width: min(48cqw, 55cqh);
+  }
+
+  .success-screen__score { width: min(31cqw, 42cqh); }
+  .success-screen__button { width: min(29cqw, 39cqh); }
+  .game-certificate { width: min(88cqw, 64rem); }
+}
+
+@media (orientation: landscape) and (max-height: 480px) {
+  .game-certificate {
+    width: min(80vw, 54rem);
+    max-height: 94dvh;
+    padding-top: 2rem;
+    padding-bottom: .45rem;
+  }
+
+  .game-certificate__subtitle,
+  .game-certificate__results,
+  .game-certificate__stamps {
+    margin-bottom: .35rem;
+  }
+
+  .game-certificate__stamp > i {
+    width: clamp(2.8rem, 12cqh, 4.5rem);
+  }
+}
