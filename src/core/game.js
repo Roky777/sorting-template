@@ -24,7 +24,7 @@ export function createGame({ persistProgress = true } = {}) {
   let tutorial;
   const sounds = createSounds();
   const level = () => getLevel(state.levelIndex);
-  const ENTRY_GAP = 20;
+  const ENTRY_GAP = 24;
   const DEFAULT_ITEM_WIDTH = 145;
   const MISS_PENALTY = 10;
   let beltWidth = window.innerWidth;
@@ -48,8 +48,51 @@ export function createGame({ persistProgress = true } = {}) {
     return bag;
   };
   const targetOnBelt = () => (beltWidth < 700 ? 5 : 6);
-  const spawnInterval = () => 1000 / (BELT_TRAVEL_RATE * targetOnBelt());
   const itemWidthFor = (width = beltWidth) => Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, width * 0.1));
+  // Responsive but bounded spacing keeps objects clearly separated on both
+  // narrow phones and wide desktop layouts.
+  const minimumItemGapFor = (width = beltWidth) => Math.max(48, Math.min(80, width * 0.055));
+  const visualFootprintFor = (item, fallbackWidth = itemWidthFor()) => {
+    const width = item.width ?? fallbackWidth;
+    return width * Math.max(1, item.visualScale ?? 1);
+  };
+  const visualLeftFor = (item, fallbackWidth) => {
+    const width = item.width ?? fallbackWidth;
+    return item.x - (visualFootprintFor(item, fallbackWidth) - width) / 2;
+  };
+  const visualRightFor = (item, fallbackWidth) => {
+    const width = item.width ?? fallbackWidth;
+    return item.x + width + (visualFootprintFor(item, fallbackWidth) - width) / 2;
+  };
+  const spawnInterval = () => {
+    const widestItem = itemWidthFor() * 1.08;
+    const pixelsPerSecond = Math.max(1, beltWidth * BELT_TRAVEL_RATE);
+    return ((widestItem + minimumItemGapFor()) / pixelsPerSecond) * 1000;
+  };
+
+  function entryHasRoom(spawnWidth) {
+    const moving = state.activeItems.filter((item) => item.beltState === "moving");
+    if (!moving.length) return true;
+    const nearest = moving.reduce((leftmost, item) => (
+      visualLeftFor(item, spawnWidth) < visualLeftFor(leftmost, spawnWidth) ? item : leftmost
+    ));
+    const pending = { x: -spawnWidth - ENTRY_GAP, width: spawnWidth, visualScale: 1.08 };
+    return visualLeftFor(nearest, spawnWidth) - visualRightFor(pending, spawnWidth) >= minimumItemGapFor();
+  }
+
+  function enforceMinimumSpacing(items, itemWidth) {
+    const ordered = [...items].sort((a, b) => a.x - b.x);
+    const gap = minimumItemGapFor();
+    // Preserve the older/right-hand object's position and move any following
+    // object back toward the entry. This cannot cause an early miss and also
+    // repairs spacing safely after a resize or a wrong-answer snap-back.
+    for (let index = ordered.length - 2; index >= 0; index -= 1) {
+      const current = ordered[index];
+      const next = ordered[index + 1];
+      const overlap = visualRightFor(current, itemWidth) + gap - visualLeftFor(next, itemWidth);
+      if (overlap > 0) current.x -= overlap;
+    }
+  }
 
   function syncItemPosition(item) {
     const element = document.querySelector(`[data-draggable-item][data-item-id="${item.id}"]`);
@@ -66,8 +109,9 @@ export function createGame({ persistProgress = true } = {}) {
       item.width = itemWidth;
       if (!Number.isFinite(item.x)) item.x = -itemWidth - ENTRY_GAP;
       item.x += detail.dx;
-      syncItemPosition(item);
     }
+    enforceMinimumSpacing(moving, itemWidth);
+    for (const item of moving) syncItemPosition(item);
 
     // `x` is the item's left edge. Crossing the lane width means the complete
     // object has visibly passed out of the right side before the miss fires.
@@ -154,12 +198,13 @@ export function createGame({ persistProgress = true } = {}) {
         nextSpawnAt = performance.now() + spawnInterval();
         return scheduleSpawn();
       }
+      const spawnWidth = itemWidthFor();
+      if (!entryHasRoom(spawnWidth)) return scheduleSpawn(120);
       const source = pickNextItem();
       // A blocked entry or temporarily ineligible bag must retry; it must
       // never silently leave the conveyor under-populated.
       if (!source) return scheduleSpawn(180 + Math.random() * 100);
       const key = itemKey(source);
-      const spawnWidth = itemWidthFor();
       state.mastery[key].lastSeen = ++state.spawnCount;
       state.lastCategory = source.answer;
       state.categoryHistory.push(source.answer);

@@ -2,9 +2,10 @@
 // and the objects subscribe to this same requestAnimationFrame clock.
 // Move a fixed fraction of the lane each second so phones, tablets, and
 // desktops all give the child the same amount of time to classify an item.
-// Fifteen percent per second keeps the requested faster belt while making a
-// complete lane crossing a calm, consistent ~6.7 seconds on every device.
-export const BELT_TRAVEL_RATE = 0.15;
+// Grade 1 pacing: a full lane crossing takes about 9.5 seconds on every
+// device. The rate is viewport-relative, so phones and desktops give the
+// child the same decision time.
+export const BELT_TRAVEL_RATE = 0.105;
 const PERSPECTIVE_FACTOR = 0.82;
 
 export function startConveyorAnimation() {
