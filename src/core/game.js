@@ -1,14 +1,14 @@
 import { getLevel, MATH_LEVELS } from "../data/math-levels.js";
 import { createInitialState } from "./state.js";
 import { bindInput } from "./input.js";
-import { createSounds } from "./sounds.js?v=20260923-seamless-load-1";
+import { createSounds } from "./sounds.js?v=20260923-runtime-smooth-2";
 import { renderHud } from "../render/hud.js";
-import { renderScene } from "../render/scene.js";
+import { renderScene } from "../render/scene.js?v=20260923-runtime-smooth-2";
 import { BELT_TRAVEL_RATE } from "../render/conveyor.js";
-import { renderGameUi } from "../ui/game-ui.js";
+import { renderGameUi } from "../ui/game-ui.js?v=20260923-runtime-smooth-2";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
-import { preloadLevelAssets } from "../data/assets.js?v=20260923-seamless-load-1";
+import { preloadLevelAssets } from "../data/assets.js?v=20260923-runtime-smooth-2";
 import { createGameAnalytics } from "./analytics.js";
 import { getPerfectLevelScore, getStarsForScore } from "./scoring.js";
 
@@ -121,7 +121,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
 
   function syncItemPosition(item) {
     const element = document.querySelector(`[data-draggable-item][data-item-id="${item.id}"]`);
-    if (element && !element.classList.contains("game-item--dragging")) element.style.left = `${item.x}px`;
+    if (element && !element.classList.contains("game-item--dragging")) {
+      element.style.setProperty("--item-x", `${item.x}px`);
+    }
   }
 
   function advanceItems({ detail }) {
@@ -744,7 +746,11 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
         offsetX: event.clientX - itemBounds.left, offsetY: event.clientY - itemBounds.top,
       };
       const activeItem = state.activeItems.find((item) => String(item.id) === String(target.dataset.itemId));
-      if (activeItem) activeItem.beltState = "dragging";
+      if (activeItem) {
+        activeItem.beltState = "dragging";
+        target.style.left = `${activeItem.x}px`;
+        target.style.setProperty("--item-x", "0px");
+      }
       state.selectedItemId = null;
       sounds.pickup();
       target.setPointerCapture(event.pointerId);

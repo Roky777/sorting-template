@@ -20,6 +20,7 @@ export function startConveyorAnimation() {
   let width = 0;
   let height = 0;
   let spacing = 180;
+  let seamGroup;
 
   function measure() {
     const conveyorHeight = Math.round(conveyor.getBoundingClientRect().height);
@@ -40,19 +41,27 @@ export function startConveyorAnimation() {
     spacing = Math.max(64, width / 8);
     seams.setAttribute("viewBox", `0 0 ${width} ${height}`);
     seams.setAttribute("preserveAspectRatio", "none");
+    buildSeams();
   }
 
-  function draw() {
+  function buildSeams() {
     const centerX = width / 2;
     const seamCount = Math.ceil(width / spacing) + 3;
     const stroke = Math.max(1.5, width * 0.0015);
-    const paths = [];
-    for (let index = -1; index < seamCount; index += 1) {
-      const frontX = index * spacing + offset;
+    const namespace = "http://www.w3.org/2000/svg";
+    seamGroup = document.createElementNS(namespace, "g");
+    for (let index = -2; index < seamCount + 1; index += 1) {
+      const frontX = index * spacing;
       const rearX = centerX + (frontX - centerX) * PERSPECTIVE_FACTOR;
-      paths.push(`<line x1="${frontX}" y1="${height}" x2="${rearX}" y2="0" stroke-width="${stroke}" />`);
+      const line = document.createElementNS(namespace, "line");
+      line.setAttribute("x1", String(frontX));
+      line.setAttribute("y1", String(height));
+      line.setAttribute("x2", String(rearX));
+      line.setAttribute("y2", "0");
+      line.setAttribute("stroke-width", String(stroke));
+      seamGroup.append(line);
     }
-    seams.innerHTML = paths.join("");
+    seams.replaceChildren(seamGroup);
   }
 
   function tick(now) {
@@ -61,7 +70,7 @@ export function startConveyorAnimation() {
     const beltSpeed = width * BELT_TRAVEL_RATE;
     const dx = beltSpeed * deltaSeconds;
     offset = (offset + dx) % spacing;
-    draw();
+    seamGroup?.setAttribute("transform", `translate(${offset} 0)`);
     // Game objects deliberately do not use a CSS keyframe. Dispatching their
     // per-frame delta makes their movement visually locked to these seams.
     window.dispatchEvent(new CustomEvent("conveyor-motion", {
@@ -72,9 +81,7 @@ export function startConveyorAnimation() {
 
   new ResizeObserver(() => {
     measure();
-    draw();
   }).observe(conveyor);
   measure();
-  draw();
   requestAnimationFrame(tick);
 }

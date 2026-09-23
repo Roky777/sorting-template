@@ -1,4 +1,4 @@
-import { assets, resolveMathArt } from "../data/assets.js";
+import { assets, resolveMathArt } from "../data/assets.js?v=20260923-runtime-smooth-2";
 
 function art(artId, className = "", assetSet) {
   const icon = document.createElement("img");
@@ -46,12 +46,28 @@ function renderItems(items, level, state) {
     }
     // `x` is advanced by the shared conveyor controller. Keeping the value in
     // state means a harmless UI re-render cannot restart or desynchronise it.
-    object.style.left = `${currentItem.x ?? -160}px`;
+    if (currentItem.beltState !== "dragging") {
+      const x = currentItem.x ?? -160;
+      const usesTutorialTransform = currentItem.tutorialMode === "flying";
+      object.style.left = usesTutorialTransform ? `${x}px` : "0px";
+      object.style.setProperty("--item-x", usesTutorialTransform ? "0px" : `${x}px`);
+    }
     object.style.setProperty("--item-scale", String(currentItem.visualScale ?? 1));
     object.style.setProperty("--item-rotation", `${currentItem.rotation ?? 0}deg`);
     nextElements.push(object);
   }
-  layer.replaceChildren(...nextElements);
+  const currentElements = [...layer.children];
+  const orderChanged = currentElements.length !== nextElements.length
+    || nextElements.some((element, index) => currentElements[index] !== element);
+  if (orderChanged) layer.replaceChildren(...nextElements);
+}
+
+function binRenderKey(bin, state) {
+  const wrong = state.feedback?.type === "wrong" && state.feedback.category === bin.id;
+  const placed = state.placed?.category === bin.id
+    ? `${state.placed.art}:${state.placed.assetSet ?? ""}`
+    : "";
+  return [bin.id, wrong ? "wrong" : "", placed, state.hintCategory === bin.id ? "hint" : ""].join("|");
 }
 
 function createBin(bin, itemName, state) {
@@ -59,6 +75,7 @@ function createBin(bin, itemName, state) {
   root.className = `sorting-bin sorting-bin--cardboard sorting-bin--${bin.id}${state.feedback?.type === "wrong" && state.feedback.category === bin.id ? " sorting-bin--shake" : ""}${state.placed?.category === bin.id ? " sorting-bin--receiving" : ""}${state.hintCategory === bin.id ? " sorting-bin--hint" : ""}`;
   root.dataset.dropCategory = bin.id;
   root.dataset.tutorialArt = resolveMathArt(bin.art, bin.assetSet);
+  root.dataset.renderKey = binRenderKey(bin, state);
   root.setAttribute("role", "button");
   root.tabIndex = 0;
   root.setAttribute("aria-label", `${bin.label} sorting box`);
@@ -103,5 +120,17 @@ export function renderScene(state, level) {
   const root = document.querySelector("#sorting-bins");
   root.dataset.level = String(state.level);
   root.dataset.count = String(level.bins.length);
-  root.replaceChildren(...level.bins.map((bin) => createBin(bin, "item", state)));
+  const existing = new Map(
+    [...root.querySelectorAll("[data-drop-category]")].map((element) => [element.dataset.dropCategory, element]),
+  );
+  const nextBins = level.bins.map((bin) => {
+    const current = existing.get(bin.id);
+    return current?.dataset.renderKey === binRenderKey(bin, state)
+      ? current
+      : createBin(bin, "item", state);
+  });
+  const currentBins = [...root.children];
+  const binsChanged = currentBins.length !== nextBins.length
+    || nextBins.some((element, index) => currentBins[index] !== element);
+  if (binsChanged) root.replaceChildren(...nextBins);
 }

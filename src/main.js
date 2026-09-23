@@ -1,8 +1,8 @@
-import { createGame } from "./core/game.js?v=20260923-seamless-load-1";
-import { startConveyorAnimation } from "./render/conveyor.js";
-import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-seamless-load-1";
-import { getLevel } from "./data/math-levels.js";
-import { registerRuntimeCache, runStartupLoader, scheduleIdle, waitForImages } from "./core/startup.js?v=20260923-seamless-load-1";
+import { createGame } from "./core/game.js?v=20260923-runtime-smooth-2";
+import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-runtime-smooth-2";
+import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-runtime-smooth-2";
+import { MATH_LEVELS } from "./data/math-levels.js";
+import { registerRuntimeCache, runStartupLoader, waitForImages } from "./core/startup.js?v=20260923-runtime-smooth-2";
 
 const launchParams = new URLSearchParams(window.location.search);
 const requestedLevel = Number(launchParams.get("level"));
@@ -18,8 +18,8 @@ let sparkyFrameTime = performance.now();
 function loadControllers() {
   if (controllerRequest) return controllerRequest;
   controllerRequest = Promise.all([
-    import("./characters/sparky-controller.js"),
-    import("./characters/success-dance-controller.js"),
+    import("./characters/sparky-controller.js?v=20260923-runtime-smooth-2"),
+    import("./characters/success-dance-controller.js?v=20260923-runtime-smooth-2"),
   ]).then(([sparkyModule, danceModule]) => {
     sparky = new sparkyModule.SparkyController(document.querySelector("#sparky"));
     successDance = new danceModule.SuccessDanceController();
@@ -71,13 +71,18 @@ registerRuntimeCache();
 
 function prepareGame() {
   if (preparationRequest) return preparationRequest;
+  const characterImages = Object.values(assets.characters);
+  const successImages = assets.ui.success;
   const tasks = [
     { label: "Loading the welcome screen…", run: () => waitForImages(startScreen) },
     { label: "Loading the factory…", run: () => hydrateDeferredImages(document.querySelector("#game-stage")) },
     { label: "Waking up Sparky…", run: () => loadControllers() },
-    { label: "Preparing the first challenge…", run: () => preloadLevelAssets(getLevel(game.state.levelIndex)) },
-    { label: "Preparing Sparky…", run: () => preloadImage(assets.characters.idle) },
-    { label: "Preparing the guide…", run: () => preloadImage(assets.characters.presentation) },
+    ...MATH_LEVELS.map((level, index) => ({
+      label: `Loading challenge ${index + 1} of ${MATH_LEVELS.length}…`,
+      run: () => preloadLevelAssets(level),
+    })),
+    { label: "Preparing Sparky…", run: () => Promise.all(characterImages.map(preloadImage)) },
+    { label: "Preparing rewards…", run: () => Promise.all(successImages.map(preloadImage)) },
     { label: "Starting the conveyor…", run: () => preloadImage(assets.ui.conveyorRims) },
     { label: "Loading the game letters…", run: () => document.fonts?.ready ?? Promise.resolve() },
   ];
@@ -91,8 +96,6 @@ function prepareGame() {
 function scheduleSecondaryWarmup() {
   if (secondaryWarmupScheduled) return;
   secondaryWarmupScheduled = true;
-  const secondaryImages = [...Object.values(assets.characters), ...assets.ui.success];
-  scheduleIdle(() => Promise.all(secondaryImages.map(preloadImage)), 3200);
   game.warmSecondaryAudio?.();
 }
 

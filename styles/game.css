@@ -223,7 +223,8 @@ body {
 }
 #belt-item-layer { position: absolute; z-index: 6; top: 50%; right: 0; left: 0; height: 22%; pointer-events: none; }
 /* The contact point is kept on the dark top plane, well above the front lip. */
-.game-item { position: absolute; z-index: 1; bottom: 39%; left: -10rem; display: grid; justify-items: center; width: 10vw; width: 10cqw; cursor: grab; touch-action: none; user-select: none; pointer-events: auto; }
+.game-item { position: absolute; z-index: 1; bottom: 39%; left: 0; display: grid; justify-items: center; width: 10vw; width: 10cqw; cursor: grab; touch-action: none; user-select: none; pointer-events: auto; }
+.game-item:not(.game-item--dragging):not(.game-item--tutorial-flying) { transform: translate3d(var(--item-x, -10rem), 0, 0); will-change: transform; }
 .game-item--dragging { z-index: 8; cursor: grabbing; scale: 1.08; filter: brightness(1.06) drop-shadow(0 0 0.5rem rgb(176 239 247 / 56%)); transition: scale 120ms ease, filter 120ms ease; }
 .game-item--selected { scale: 1.08; filter: brightness(1.08) drop-shadow(0 0 .55rem rgb(255 221 62 / 82%)); }
 .game-item:focus-visible { outline: clamp(2px, .25cqw, 4px) solid #ffe346; outline-offset: .2rem; border-radius: 18%; }
@@ -259,7 +260,7 @@ body {
   box-shadow: 0 2px 3px rgb(0 0 0 / 22%);
 }
 body.game-runtime-loaded .conveyor__front-beam {
-  background: url("../assets/ui/conveyor-rims.png") center -31.6vw / 100% auto no-repeat;
+  background: url("../assets/ui/conveyor-rims.webp") center -31.6vw / 100% auto no-repeat;
 }
 .conveyor__front-beam::before {
   position: absolute;
@@ -849,7 +850,7 @@ body.game-runtime-loaded .conveyor__front-beam {
     justify-items: center;
     gap: 0.55rem;
     padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
-    background: linear-gradient(rgb(168 239 244 / 82%), rgb(58 185 215 / 82%)), url("../assets/backgrounds/shape-lab-factory.png") center / cover;
+    background: linear-gradient(rgb(168 239 244 / 82%), rgb(58 185 215 / 82%)), url("../assets/backgrounds/shape-lab-factory.webp") center / cover;
     color: #663017;
     text-align: center;
   }

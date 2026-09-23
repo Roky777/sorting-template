@@ -1,6 +1,6 @@
 const DEFAULT_STATES = {
   idle: {
-    src: "assets/characters/idle.png",
+    src: "assets/characters/idle.webp",
     columns: 4,
     rows: 3,
     frameCount: 12,
@@ -10,7 +10,7 @@ const DEFAULT_STATES = {
     interruptible: true,
   },
   correct: {
-    src: "assets/characters/modified_thubms_up.png",
+    src: "assets/characters/modified_thubms_up.webp",
     columns: 4,
     rows: 2,
     frameCount: 8,
@@ -28,7 +28,7 @@ const DEFAULT_STATES = {
     interruptible: true,
   },
   nod: {
-    src: "assets/characters/updated_nod.png",
+    src: "assets/characters/updated_nod.webp",
     columns: 4,
     rows: 3,
     frameCount: 12,
@@ -46,7 +46,7 @@ const DEFAULT_STATES = {
     interruptible: true,
   },
   happy: {
-    src: "assets/characters/happy.png",
+    src: "assets/characters/happy.webp",
     columns: 4,
     rows: 3,
     frameCount: 9,
@@ -62,7 +62,7 @@ const DEFAULT_STATES = {
     interruptible: true,
   },
   presentingDomo: {
-    src: "assets/characters/final_presentation_clean.png",
+    src: "assets/characters/final_presentation_clean.webp",
     columns: 4,
     rows: 3,
     frameCount: 12,
@@ -84,7 +84,7 @@ const DEFAULT_STATES = {
     interruptible: false,
   },
   presentingDomoDomo: {
-    src: "assets/characters/final_presentation_clean.png",
+    src: "assets/characters/final_presentation_clean.webp",
     columns: 4,
     rows: 3,
     frameCount: 12,
@@ -101,7 +101,7 @@ const DEFAULT_STATES = {
     interruptible: false,
   },
   thinking: {
-    src: "assets/characters/thinking.png",
+    src: "assets/characters/thinking.webp",
     columns: 4,
     rows: 3,
     frameCount: 8,
@@ -114,7 +114,7 @@ const DEFAULT_STATES = {
     interruptible: true,
   },
   surprised: {
-    src: "assets/characters/surprised.png",
+    src: "assets/characters/surprised.webp",
     columns: 4,
     rows: 3,
     frameCount: 8,
@@ -130,7 +130,7 @@ const DEFAULT_STATES = {
     interruptible: true,
   },
   levelComplete: {
-    src: "assets/characters/updated_dance_normalized.png",
+    src: "assets/characters/updated_dance_normalized.webp",
     columns: 9,
     rows: 1,
     frameCount: 16,
