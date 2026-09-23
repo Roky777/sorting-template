@@ -118,15 +118,15 @@ const exactArt = {
 };
 
 const levelTuning = [
-  { goal: 15, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 3, intro: "Drag the pencil to LONG and the ball to ROUND." },
-  { goal: 15, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Look at each picture. The name tags are gone!", streakBonus: true },
-  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Different objects can belong to the same shape family." },
-  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Compare the whole shape, not its color or use." },
-  { goal: 18, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Three shape families are ready. Choose carefully.", trioBonus: true },
-  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Round surfaces roll. Flat surfaces slide." },
-  { goal: 16, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "Picture challenge: decide without name tags.", streakBonus: true },
-  { goal: 18, occupancyStart: 2, occupancyTarget: 5, occupancyRampAt: 2, intro: "A cylinder can roll on its side and slide on its flat end.", bothBonus: true },
-  { goal: 20, occupancyStart: 3, occupancyTarget: 5, occupancyRampAt: 0, intro: "Motion Master: sort every picture independently." },
+  { goal: 15, maxOnBelt: 4, beltTravelRate: 0.082, occupancyStart: 2, occupancyTarget: 4, occupancyRampAt: 3, intro: "Drag the pencil to LONG and the ball to ROUND." },
+  { goal: 15, maxOnBelt: 4, beltTravelRate: 0.08, occupancyStart: 2, occupancyTarget: 4, occupancyRampAt: 2, intro: "Look at each picture. The name tags are gone!", streakBonus: true },
+  { goal: 16, maxOnBelt: 4, beltTravelRate: 0.08, occupancyStart: 2, occupancyTarget: 4, occupancyRampAt: 2, intro: "Different objects can belong to the same shape family." },
+  { goal: 16, maxOnBelt: 4, beltTravelRate: 0.078, occupancyStart: 2, occupancyTarget: 4, occupancyRampAt: 2, intro: "Compare the whole shape, not its color or use." },
+  { goal: 18, maxOnBelt: 3, beltTravelRate: 0.074, occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Three shape families are ready. Choose carefully.", trioBonus: true },
+  { goal: 16, maxOnBelt: 4, beltTravelRate: 0.08, occupancyStart: 2, occupancyTarget: 4, occupancyRampAt: 2, intro: "Round surfaces roll. Flat surfaces slide." },
+  { goal: 16, maxOnBelt: 4, beltTravelRate: 0.076, occupancyStart: 2, occupancyTarget: 4, occupancyRampAt: 2, intro: "Picture challenge: decide without name tags.", streakBonus: true },
+  { goal: 18, maxOnBelt: 3, beltTravelRate: 0.072, occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "A cylinder can roll on its side and slide on its flat end.", bothBonus: true },
+  { goal: 20, maxOnBelt: 3, beltTravelRate: 0.07, occupancyStart: 2, occupancyTarget: 3, occupancyRampAt: 2, intro: "Motion Master: sort every picture independently." },
 ];
 
 function buildTutorial(level, tuning, levelIndex) {

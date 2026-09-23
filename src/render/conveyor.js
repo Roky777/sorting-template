@@ -5,7 +5,16 @@
 // Grade 1 pacing: a full lane crossing takes about 9.5 seconds on every
 // device. The rate is viewport-relative, so phones and desktops give the
 // child the same decision time.
-export const BELT_TRAVEL_RATE = 0.105;
+export const DEFAULT_BELT_TRAVEL_RATE = 0.085;
+let beltTravelRate = DEFAULT_BELT_TRAVEL_RATE;
+
+export function setBeltTravelRate(rate) {
+  beltTravelRate = Math.max(0.06, Math.min(0.1, Number(rate) || DEFAULT_BELT_TRAVEL_RATE));
+}
+
+export function getBeltTravelRate() {
+  return beltTravelRate;
+}
 const PERSPECTIVE_FACTOR = 0.82;
 
 export function startConveyorAnimation() {
@@ -67,7 +76,7 @@ export function startConveyorAnimation() {
   function tick(now) {
     const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
-    const beltSpeed = width * BELT_TRAVEL_RATE;
+    const beltSpeed = width * beltTravelRate;
     const dx = beltSpeed * deltaSeconds;
     offset = (offset + dx) % spacing;
     // Move the cached seams with the same perspective geometry as the

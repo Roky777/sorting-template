@@ -1,10 +1,10 @@
-import { getLevel, MATH_LEVELS } from "../data/math-levels.js";
+import { getLevel, MATH_LEVELS } from "../data/math-levels.js?v=20260923-level-pacing-1";
 import { createInitialState } from "./state.js?v=20260923-xp-smooth-1";
 import { bindInput } from "./input.js";
 import { createSounds } from "./sounds.js?v=20260923-xp-smooth-1";
 import { renderHud } from "../render/hud.js";
 import { renderScene } from "../render/scene.js?v=20260923-runtime-smooth-2";
-import { BELT_TRAVEL_RATE } from "../render/conveyor.js";
+import { getBeltTravelRate, setBeltTravelRate } from "../render/conveyor.js?v=20260923-level-pacing-1";
 import { renderGameUi } from "../ui/game-ui.js?v=20260923-xp-smooth-1";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
@@ -68,10 +68,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     }
     return bag;
   };
-  const targetOnBelt = () => (beltWidth < 700 ? 5 : 6);
-  // Keep one incoming buffer beyond the visible target. Without it, reaching
-  // six items pauses the producer for a full cadence and creates a repeated
-  // empty slot between batches.
+  const targetOnBelt = () => Math.max(2, Math.min(4, level().maxOnBelt ?? 4));
+  // Keep one incoming buffer beyond the level's visible target so its chosen
+  // spacing remains continuous without showing an extra object on the lane.
   const maximumInFlight = () => targetOnBelt() + 1;
   const itemWidthFor = (width = beltWidth) => Math.max(78, Math.min(DEFAULT_ITEM_WIDTH, width * 0.1));
   // Responsive but bounded spacing keeps objects clearly separated on both
@@ -91,8 +90,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   };
   const spawnInterval = () => {
     const widestItem = itemWidthFor() * 1.08;
-    const pixelsPerSecond = Math.max(1, beltWidth * BELT_TRAVEL_RATE);
-    return ((widestItem + minimumItemGapFor()) / pixelsPerSecond) * 1000;
+    const pixelsPerSecond = Math.max(1, beltWidth * getBeltTravelRate());
+    const visibleSlotDistance = beltWidth / targetOnBelt();
+    return (Math.max(widestItem + minimumItemGapFor(), visibleSlotDistance) / pixelsPerSecond) * 1000;
   };
 
   function entryHasRoom(spawnWidth) {
@@ -261,6 +261,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   }
 
   function loadBelt() {
+    setBeltTravelRate(level().beltTravelRate);
     // Warm only the active level. Later levels stay off the network until the
     // player reaches them, while the browser can decode this level in parallel.
     preloadLevelAssets(level());
