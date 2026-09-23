@@ -265,3 +265,12 @@ body {
     width: clamp(4.25rem, 20cqh, 6.2rem);
   }
 }
+
+@media (orientation: landscape) and (max-height: 480px) {
+  .game-certificate { width: min(80vw, 54rem); padding-top: clamp(2.7rem, 14cqh, 3.8rem); padding-bottom: .5rem; row-gap: .08rem; }
+  .game-certificate__ribbon { top: auto; margin-bottom: .15rem; }
+  .game-certificate__victory-stars { height: clamp(2.3rem, 12cqh, 3.8rem); margin-bottom: .2rem; }
+  .game-certificate__results,
+  .game-certificate__stamps { margin-bottom: .25rem; }
+  .game-certificate__stamp > i { width: clamp(2.25rem, 11cqh, 3.6rem); }
+}
