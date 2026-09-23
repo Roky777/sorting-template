@@ -89,10 +89,24 @@ export const assets = {
 // more than once. The browser cache still does the heavy lifting; this map
 // also lets callers await readiness before revealing a new game surface.
 const imageRequests = new Map();
+const decodedImages = new Map();
+const DECODED_IMAGE_LIMIT = 64;
+
+function retainDecodedImage(src, image) {
+  decodedImages.delete(src);
+  decodedImages.set(src, image);
+  while (decodedImages.size > DECODED_IMAGE_LIMIT) {
+    decodedImages.delete(decodedImages.keys().next().value);
+  }
+}
 
 export function preloadImage(src) {
   if (!src) return Promise.resolve();
-  if (imageRequests.has(src)) return imageRequests.get(src);
+  if (imageRequests.has(src)) {
+    const decoded = decodedImages.get(src);
+    if (decoded) retainDecodedImage(src, decoded);
+    return imageRequests.get(src);
+  }
   const request = new Promise((resolve) => {
     const image = new Image();
     image.decoding = "async";
@@ -100,6 +114,7 @@ export function preloadImage(src) {
       // An image can be downloaded but still cost a visible decode on its
       // first painted frame. Decode it during the hidden warm-up instead.
       await image.decode?.().catch(() => {});
+      retainDecodedImage(src, image);
       resolve({ src, loaded: true });
     };
     image.onerror = () => resolve({ src, loaded: false });

@@ -21,6 +21,7 @@ export function createSounds() {
   let successBgm;
   let voice;
   let audioWarmup;
+  let secondaryAudioWarmup;
   const warmPlayers = [];
 
   function gameMusic() {
@@ -77,16 +78,24 @@ export function createSounds() {
 
   function warmAllAudio() {
     if (audioWarmup) return audioWarmup;
-    const music = [gameMusic(), successMusic()];
-    music.forEach((player) => { player.preload = "auto"; });
+    const music = gameMusic();
+    music.preload = "auto";
     const voices = [...new Set(Object.values(VOICES))].map((source) => {
       const player = new Audio(source);
       player.preload = "auto";
       warmPlayers.push(player);
       return player;
     });
-    audioWarmup = Promise.all([...music, ...voices].map(waitForMedia));
+    audioWarmup = Promise.all([music, ...voices].map(waitForMedia));
     return audioWarmup;
+  }
+
+  function warmSecondaryAudio() {
+    if (secondaryAudioWarmup) return secondaryAudioWarmup;
+    const player = successMusic();
+    player.preload = "auto";
+    secondaryAudioWarmup = Promise.all([warmAllAudio(), waitForMedia(player)]);
+    return secondaryAudioWarmup;
   }
 
   function audioContext() {
@@ -188,7 +197,7 @@ export function createSounds() {
 
   return {
     warmAllAudio,
-    warmSecondaryAudio: warmAllAudio,
+    warmSecondaryAudio,
     setMuted(value) {
       muted = value;
       if (muted) stopVoice();

@@ -16,6 +16,7 @@ export function getBeltTravelRate() {
   return beltTravelRate;
 }
 const PERSPECTIVE_FACTOR = 0.82;
+const FRAME_INTERVAL_MS = 1000 / 60;
 
 export function startConveyorAnimation() {
   const track = document.querySelector(".conveyor__track");
@@ -74,8 +75,16 @@ export function startConveyorAnimation() {
   }
 
   function tick(now) {
-    const deltaSeconds = Math.min(0.05, (now - lastTime) / 1000);
-    lastTime = now;
+    const elapsed = now - lastTime;
+    // A small tolerance keeps ordinary 60 Hz displays from accidentally
+    // dropping to 30 fps because of sub-millisecond RAF jitter, while still
+    // avoiding duplicate work on 90/120 Hz panels.
+    if (elapsed < FRAME_INTERVAL_MS - 1) {
+      requestAnimationFrame(tick);
+      return;
+    }
+    const deltaSeconds = Math.min(0.05, elapsed / 1000);
+    lastTime = now - (elapsed % FRAME_INTERVAL_MS);
     const beltSpeed = width * beltTravelRate;
     const dx = beltSpeed * deltaSeconds;
     offset = (offset + dx) % spacing;

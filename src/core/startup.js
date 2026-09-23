@@ -29,7 +29,7 @@ export function scheduleIdle(task, timeout = 2500) {
   return window.setTimeout(() => task(), Math.min(timeout, 900));
 }
 
-export async function runStartupLoader({ screen, tasks, minimumVisibleMs = 650 }) {
+export async function runStartupLoader({ screen, tasks, minimumVisibleMs = 280 }) {
   const startedAt = performance.now();
   const fill = screen?.querySelector("[data-loading-fill]");
   const track = screen?.querySelector(".loading-screen__track");
@@ -61,7 +61,7 @@ export async function runStartupLoader({ screen, tasks, minimumVisibleMs = 650 }
   if (remaining > 0) await delay(remaining);
   document.body.classList.add("game-start-ready");
   screen?.classList.add("loading-screen--leaving");
-  await delay(260);
+  await delay(160);
   if (screen) screen.hidden = true;
 }
 

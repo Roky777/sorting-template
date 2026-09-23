@@ -1,10 +1,12 @@
-import { assets, resolveMathArt } from "../data/assets.js?v=20260923-runtime-smooth-2";
+import { assets, resolveMathArt } from "../data/assets.js?v=20260923-seamless-1";
 
 function art(artId, className = "", assetSet) {
   const icon = document.createElement("img");
   icon.className = `math-art ${className}`.trim();
   icon.src = resolveMathArt(artId, assetSet);
   icon.alt = "";
+  icon.decoding = "async";
+  icon.draggable = false;
   return icon;
 }
 
@@ -89,6 +91,8 @@ function createBin(bin, itemName, state) {
   leaves.className = "sorting-bin__leaves";
   leaves.src = assets.ui.boxLeaves;
   leaves.alt = "";
+  leaves.decoding = "async";
+  leaves.draggable = false;
   root.append(leaves);
   
   // Every category uses its own complete, finished box artwork. Level 1 keeps
@@ -97,6 +101,8 @@ function createBin(bin, itemName, state) {
   boxImage.className = "sorting-bin__image";
   boxImage.src = assets.ui.sortingBins[bin.id] ?? assets.ui.sortingBins.long;
   boxImage.alt = "";
+  boxImage.decoding = "async";
+  boxImage.draggable = false;
   root.append(boxImage);
 
   if (state.placed?.category === bin.id) {

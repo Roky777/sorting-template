@@ -1,8 +1,8 @@
-import { createGame } from "./core/game.js?v=20260923-xp-display-1";
-import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-level-pacing-1";
-import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-runtime-smooth-2";
+import { createGame } from "./core/game.js?v=20260923-seamless-1";
+import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-seamless-1";
+import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-seamless-1";
 import { MATH_LEVELS } from "./data/math-levels.js?v=20260923-level-pacing-1";
-import { registerRuntimeCache, runStartupLoader, waitForImages } from "./core/startup.js?v=20260923-runtime-smooth-2";
+import { registerRuntimeCache, runStartupLoader, scheduleIdle, waitForImages } from "./core/startup.js?v=20260923-seamless-1";
 
 const launchParams = new URLSearchParams(window.location.search);
 const requestedLevel = Number(launchParams.get("level"));
@@ -71,18 +71,16 @@ registerRuntimeCache();
 
 function prepareGame() {
   if (preparationRequest) return preparationRequest;
-  const characterImages = Object.values(assets.characters);
-  const successImages = assets.ui.success;
+  const activeLevel = MATH_LEVELS[game.state.levelIndex] ?? MATH_LEVELS[0];
+  const gameplayCharacterImages = Object.entries(assets.characters)
+    .filter(([name]) => name !== "successDance")
+    .map(([, source]) => source);
   const tasks = [
     { label: "Loading the welcome screen…", run: () => waitForImages(startScreen) },
     { label: "Loading the factory…", run: () => hydrateDeferredImages(document.querySelector("#game-stage")) },
     { label: "Waking up Sparky…", run: () => loadControllers() },
-    ...MATH_LEVELS.map((level, index) => ({
-      label: `Loading challenge ${index + 1} of ${MATH_LEVELS.length}…`,
-      run: () => preloadLevelAssets(level),
-    })),
-    { label: "Preparing Sparky…", run: () => Promise.all(characterImages.map(preloadImage)) },
-    { label: "Preparing rewards…", run: () => Promise.all(successImages.map(preloadImage)) },
+    { label: "Loading this challenge…", run: () => preloadLevelAssets(activeLevel) },
+    { label: "Preparing Sparky…", run: () => Promise.all(gameplayCharacterImages.map(preloadImage)) },
     { label: "Starting the conveyor…", run: () => preloadImage(assets.ui.conveyorRims) },
     { label: "Tuning the sounds…", run: () => game.prepareAudio() },
     { label: "Loading the game letters…", run: () => document.fonts?.ready ?? Promise.resolve() },
@@ -97,7 +95,11 @@ function prepareGame() {
 function scheduleSecondaryWarmup() {
   if (secondaryWarmupScheduled) return;
   secondaryWarmupScheduled = true;
-  game.warmSecondaryAudio?.();
+  scheduleIdle(() => Promise.allSettled([
+    game.warmSecondaryAudio?.(),
+    preloadImage(assets.characters.successDance),
+    ...assets.ui.success.map(preloadImage),
+  ]), 1800);
 }
 
 function bootGame() {

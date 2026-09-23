@@ -3,12 +3,12 @@ import { createInitialState } from "./state.js?v=20260923-xp-smooth-1";
 import { bindInput } from "./input.js";
 import { createSounds } from "./sounds.js?v=20260923-xp-smooth-1";
 import { renderHud } from "../render/hud.js?v=20260923-xp-display-1";
-import { renderScene } from "../render/scene.js?v=20260923-runtime-smooth-2";
-import { getBeltTravelRate, setBeltTravelRate } from "../render/conveyor.js?v=20260923-level-pacing-1";
+import { renderScene } from "../render/scene.js?v=20260923-seamless-1";
+import { getBeltTravelRate, setBeltTravelRate } from "../render/conveyor.js?v=20260923-seamless-1";
 import { renderGameUi } from "../ui/game-ui.js?v=20260923-xp-display-1";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
-import { preloadLevelAssets } from "../data/assets.js?v=20260923-runtime-smooth-2";
+import { preloadLevelAssets } from "../data/assets.js?v=20260923-seamless-1";
 import { createGameAnalytics, getLevelXpMaximum, getObjectXp } from "./analytics.js?v=20260923-xp-display-1";
 import { getStarsForXp } from "./scoring.js?v=20260923-xp-display-1";
 
@@ -25,6 +25,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   let nextLevelAssetsIndex = -1;
   let levelTransitioning = false;
   let forceOpeningTutorial = state.levelIndex === 0;
+  const itemElementCache = new Map();
   let drag;
   let tutorial;
   const sounds = createSounds();
@@ -119,7 +120,13 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   }
 
   function syncItemPosition(item) {
-    const element = document.querySelector(`[data-draggable-item][data-item-id="${item.id}"]`);
+    const cacheKey = String(item.id);
+    let element = itemElementCache.get(cacheKey);
+    if (!element?.isConnected || element.dataset.itemId !== cacheKey) {
+      element = document.querySelector(`[data-draggable-item][data-item-id="${item.id}"]`);
+      if (element) itemElementCache.set(cacheKey, element);
+      else itemElementCache.delete(cacheKey);
+    }
     if (element && !element.classList.contains("game-item--dragging")) {
       element.style.setProperty("--item-x", `${item.x}px`);
     }
@@ -822,7 +829,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   }
 
   function warmSecondaryAudio() {
-    sounds.warmSecondaryAudio();
+    return sounds.warmSecondaryAudio();
   }
 
   function prepareAudio() {
