@@ -1,15 +1,15 @@
 import { getLevel, MATH_LEVELS } from "../data/math-levels.js";
-import { createInitialState } from "./state.js";
+import { createInitialState } from "./state.js?v=20260923-xp-smooth-1";
 import { bindInput } from "./input.js";
-import { createSounds } from "./sounds.js?v=20260923-runtime-smooth-2";
+import { createSounds } from "./sounds.js?v=20260923-xp-smooth-1";
 import { renderHud } from "../render/hud.js";
 import { renderScene } from "../render/scene.js?v=20260923-runtime-smooth-2";
 import { BELT_TRAVEL_RATE } from "../render/conveyor.js";
-import { renderGameUi } from "../ui/game-ui.js?v=20260923-runtime-smooth-2";
+import { renderGameUi } from "../ui/game-ui.js?v=20260923-xp-smooth-1";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
 import { preloadLevelAssets } from "../data/assets.js?v=20260923-runtime-smooth-2";
-import { createGameAnalytics } from "./analytics.js";
+import { createGameAnalytics, getLevelXpMaximum } from "./analytics.js?v=20260923-xp-smooth-1";
 import { getPerfectLevelScore, getStarsForScore } from "./scoring.js";
 
 export function createGame({ persistProgress = true, gameId = "sorting-template" } = {}) {
@@ -28,7 +28,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   let drag;
   let tutorial;
   const sounds = createSounds();
-  const analytics = createGameAnalytics({ gameId, levelCount: MATH_LEVELS.length, enabled: persistProgress });
+  const analytics = createGameAnalytics({ gameId, levelCount: MATH_LEVELS.length, levels: MATH_LEVELS, enabled: persistProgress });
   const level = () => getLevel(state.levelIndex);
 
   function prepareUpcomingLevel() {
@@ -289,6 +289,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.levelAttempts = 0;
     state.levelFirstTryCorrect = 0;
     state.levelScore = 0;
+    state.levelXp = 0;
     analytics.startLevel(state.levelIndex + 1);
     state.hintCategory = null;
     const forceTutorial = forceOpeningTutorial && state.levelIndex === 0;
@@ -364,13 +365,19 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.campaignStars += state.stars;
     state.completedLevel = true;
     prepareUpcomingLevel();
-    analytics.completeLevel({
+    const analyticsResult = analytics.completeLevel({
       levelNumber: state.levelIndex + 1,
       stars: state.stars,
       attempts: state.levelAttempts,
       firstTryCorrect: state.levelFirstTryCorrect,
       score: state.levelScore,
     });
+    state.levelXp = analyticsResult?.xpEarned
+      ?? getLevelXpMaximum(state.levelIndex + 1, MATH_LEVELS.length);
+    state.campaignXp = Math.min(
+      analytics.getCampaignXpCap(),
+      state.campaignXp + state.levelXp,
+    );
     state.feedback = { type: "complete", message: "Wonderful sorting!" };
     if (persistProgress) {
       saveHighestLevel(Math.min(state.levelIndex + 2, MATH_LEVELS.length), MATH_LEVELS.length);
@@ -409,6 +416,11 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.completedMastery = targetLevel.goal;
     state.levelScore = Number.isFinite(Number(score)) ? Math.round(Number(score)) : defaultScore;
     state.score = state.levelScore;
+    state.levelXp = getLevelXpMaximum(previewLevel, MATH_LEVELS.length);
+    state.campaignXp = Array.from(
+      { length: previewLevel },
+      (_, index) => getLevelXpMaximum(index + 1, MATH_LEVELS.length),
+    ).reduce((total, value) => total + value, 0);
     state.stars = previewStars;
     state.feedback = { type: "complete", message: "Wonderful sorting!" };
     state.activeItems = [];
@@ -609,6 +621,8 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     window.clearTimeout(spawnTimer);
     spawnTimer = undefined;
     state.score -= state.levelScore;
+    state.campaignXp = Math.max(0, state.campaignXp - state.levelXp);
+    state.levelXp = 0;
     state.correct = Math.max(0, state.correct - state.completedMastery);
     state.campaignStars = Math.max(0, state.campaignStars - state.stars);
     state.stars = 0;
@@ -819,6 +833,10 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     sounds.warmSecondaryAudio();
   }
 
+  function prepareAudio() {
+    return sounds.warmAllAudio();
+  }
+
   tutorial = new TutorialController({
     layer: document.querySelector("#tutorial-layer"),
     stage: document.querySelector("#game-stage"),
@@ -832,5 +850,5 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   });
 
   window.sorterAnalytics = analytics;
-  return { start, dispatch, state, enableAudio, warmSecondaryAudio, showSuccessPreview, analytics };
+  return { start, dispatch, state, enableAudio, prepareAudio, warmSecondaryAudio, showSuccessPreview, analytics };
 }

@@ -1,4 +1,4 @@
-import { createGame } from "./core/game.js?v=20260923-runtime-smooth-2";
+import { createGame } from "./core/game.js?v=20260923-xp-smooth-1";
 import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-runtime-smooth-3";
 import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-runtime-smooth-2";
 import { MATH_LEVELS } from "./data/math-levels.js";
@@ -84,6 +84,7 @@ function prepareGame() {
     { label: "Preparing Sparky…", run: () => Promise.all(characterImages.map(preloadImage)) },
     { label: "Preparing rewards…", run: () => Promise.all(successImages.map(preloadImage)) },
     { label: "Starting the conveyor…", run: () => preloadImage(assets.ui.conveyorRims) },
+    { label: "Tuning the sounds…", run: () => game.prepareAudio() },
     { label: "Loading the game letters…", run: () => document.fonts?.ready ?? Promise.resolve() },
   ];
   preparationRequest = runStartupLoader({ screen: loadingScreen, tasks }).then(() => {

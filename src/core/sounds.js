@@ -20,6 +20,8 @@ export function createSounds() {
   let bgm;
   let successBgm;
   let voice;
+  let audioWarmup;
+  const warmPlayers = [];
 
   function gameMusic() {
     if (bgm) return bgm;
@@ -52,6 +54,39 @@ export function createSounds() {
       if (bgm) bgm.volume = BGM_VOLUME;
     });
     return voice;
+  }
+
+  function waitForMedia(player) {
+    if (player.readyState >= 3) return Promise.resolve();
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        player.removeEventListener("canplay", finish);
+        player.removeEventListener("error", finish);
+        window.clearTimeout(timeout);
+        resolve();
+      };
+      const timeout = window.setTimeout(finish, 8000);
+      player.addEventListener("canplay", finish, { once: true });
+      player.addEventListener("error", finish, { once: true });
+      player.load();
+    });
+  }
+
+  function warmAllAudio() {
+    if (audioWarmup) return audioWarmup;
+    const music = [gameMusic(), successMusic()];
+    music.forEach((player) => { player.preload = "auto"; });
+    const voices = [...new Set(Object.values(VOICES))].map((source) => {
+      const player = new Audio(source);
+      player.preload = "auto";
+      warmPlayers.push(player);
+      return player;
+    });
+    audioWarmup = Promise.all([...music, ...voices].map(waitForMedia));
+    return audioWarmup;
   }
 
   function audioContext() {
@@ -152,11 +187,8 @@ export function createSounds() {
   }
 
   return {
-    warmSecondaryAudio() {
-      const player = successMusic();
-      player.preload = "auto";
-      player.load();
-    },
+    warmAllAudio,
+    warmSecondaryAudio: warmAllAudio,
     setMuted(value) {
       muted = value;
       if (muted) stopVoice();

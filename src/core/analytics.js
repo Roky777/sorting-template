@@ -1,5 +1,6 @@
 const ANALYTICS_QUEUE_KEY = "ignite_pending_sessions_jsplugin";
 export const CAMPAIGN_XP_CAP = 200;
+const XP_PRECISION = 1_000_000;
 
 const now = () => globalThis.performance?.now?.() ?? Date.now();
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -19,9 +20,23 @@ export function getLevelXpMaximum(levelNumber, levelCount) {
   return base + (safeLevel <= remainder ? 1 : 0);
 }
 
-export function calculateLevelXp(levelNumber, levelCount, stars) {
-  const multiplier = Number(stars) >= 3 ? 1 : Number(stars) >= 2 ? 0.8 : 0.6;
-  return Math.round(getLevelXpMaximum(levelNumber, levelCount) * multiplier);
+export function getObjectXp(levelNumber, levelCount, objectIndex, objectCount) {
+  const safeObjectCount = Math.max(1, Math.trunc(Number(objectCount) || 1));
+  const safeObject = clamp(Math.trunc(Number(objectIndex) || 1), 1, safeObjectCount);
+  const levelUnits = getLevelXpMaximum(levelNumber, levelCount) * XP_PRECISION;
+  const baseUnits = Math.floor(levelUnits / safeObjectCount);
+  const remainderUnits = levelUnits % safeObjectCount;
+  return (baseUnits + (safeObject <= remainderUnits ? 1 : 0)) / XP_PRECISION;
+}
+
+export function calculateLevelXp(levelNumber, levelCount, completedObjects, objectCount) {
+  const safeObjectCount = Math.max(1, Math.trunc(Number(objectCount) || 1));
+  const safeCompleted = clamp(Math.trunc(Number(completedObjects) || 0), 0, safeObjectCount);
+  let xp = 0;
+  for (let index = 1; index <= safeCompleted; index += 1) {
+    xp += getObjectXp(levelNumber, levelCount, index, safeObjectCount);
+  }
+  return Math.round(xp * XP_PRECISION) / XP_PRECISION;
 }
 
 function readQueue() {
@@ -109,13 +124,18 @@ function installDeliveryListeners() {
   window.setTimeout(flushPending, 2000);
 }
 
-export function createGameAnalytics({ gameId, levelCount, enabled = true }) {
+export function createGameAnalytics({ gameId, levelCount, levels = [], enabled = true }) {
   const totalLevels = Math.max(1, Math.trunc(Number(levelCount) || 1));
+  const levelObjectCounts = Array.from({ length: totalLevels }, (_, index) => {
+    const source = levels[index];
+    return Math.max(1, Math.trunc(Number(source?.goal ?? source?.items?.length) || 1));
+  });
   let runId = "";
   let currentLevel = null;
   let levelStartedAt = 0;
   let taskStartedAt = 0;
   let taskSequence = 0;
+  let successfulTasks = 0;
   let tasks = [];
   let submittedLevels = new Set();
 
@@ -133,6 +153,7 @@ export function createGameAnalytics({ gameId, levelCount, enabled = true }) {
     levelStartedAt = now();
     taskStartedAt = levelStartedAt;
     taskSequence = 0;
+    successfulTasks = 0;
     tasks = [];
   };
 
@@ -140,6 +161,12 @@ export function createGameAnalytics({ gameId, levelCount, enabled = true }) {
     if (!enabled || currentLevel === null) return;
     const timestamp = now();
     taskSequence += 1;
+    const objectCount = levelObjectCounts[currentLevel - 1];
+    let xpEarned = 0;
+    if (successful && successfulTasks < objectCount) {
+      successfulTasks += 1;
+      xpEarned = getObjectXp(currentLevel, totalLevels, successfulTasks, objectCount);
+    }
     tasks.push({
       taskId: `task_${taskSequence}`,
       question: `Sort ${itemName || "item"}`,
@@ -148,7 +175,7 @@ export function createGameAnalytics({ gameId, levelCount, enabled = true }) {
       choiceMade: String(choiceMade ?? ""),
       successful: Boolean(successful),
       timeTaken: Math.max(0, Math.round(timestamp - taskStartedAt)),
-      xpEarned: 0,
+      xpEarned,
     });
     taskStartedAt = timestamp;
   };
@@ -159,7 +186,8 @@ export function createGameAnalytics({ gameId, levelCount, enabled = true }) {
     if (submittedLevels.has(normalizedLevel)) return null;
     if (currentLevel !== normalizedLevel) startLevel(normalizedLevel);
 
-    const xp = calculateLevelXp(normalizedLevel, totalLevels, stars);
+    const objectCount = levelObjectCounts[normalizedLevel - 1];
+    const xp = calculateLevelXp(normalizedLevel, totalLevels, successfulTasks, objectCount);
     const level = {
       levelId: String(normalizedLevel),
       levelNumber: normalizedLevel,
@@ -189,6 +217,7 @@ export function createGameAnalytics({ gameId, levelCount, enabled = true }) {
         { key: "score", value: String(Math.round(Number(score) || 0)) },
         { key: "xp_earned", value: String(xp) },
         { key: "level_xp_max", value: String(getLevelXpMaximum(normalizedLevel, totalLevels)) },
+        { key: "object_count", value: String(objectCount) },
         { key: "campaign_xp_cap", value: String(CAMPAIGN_XP_CAP) },
       ],
       diagnostics: { levels: [level] },

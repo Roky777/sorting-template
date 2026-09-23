@@ -5,6 +5,8 @@ export const createInitialState = () => ({
   maxStars: 3,
   score: 0,
   levelScore: 0,
+  levelXp: 0,
+  campaignXp: 0,
   mastery: {},
   totalRequired: 0,
   completedMastery: 0,

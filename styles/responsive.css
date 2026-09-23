@@ -36,7 +36,7 @@ body {
 
 /* Keep Sparky and gameplay bins readable on both tablets and short phones. */
 .sparky {
-  width: clamp(7.5rem, min(19cqw, 46cqh), 17rem);
+  width: clamp(7.5rem, min(16cqw, 36cqh), 15rem);
 }
 
 .sorting-bins {
@@ -186,11 +186,11 @@ body {
 }
 
 .success-star {
-  width: min(9cqw, 20cqh, 9rem);
+  width: min(8.25cqw, 15cqh, 8.25rem);
 }
 
-.success-screen__score {
-  width: min(24cqw, 54cqh, 25rem);
+.success-screen__stats {
+  width: min(31cqw, 70cqh, 33rem);
 }
 
 .success-screen__button {
@@ -211,8 +211,8 @@ body {
   }
 
   .success-screen__reward {
-    top: 33cqh;
-    gap: 1.2cqh;
+    top: 34cqh;
+    gap: 1cqh;
   }
 
   .success-screen__button {
@@ -233,12 +233,12 @@ body {
   }
 
   .success-screen__reward {
-    top: 34cqh;
+    top: 35cqh;
     left: 67%;
     width: min(48cqw, 55cqh);
   }
 
-  .success-screen__score { width: min(31cqw, 42cqh); }
+  .success-screen__stats { width: min(38cqw, 52cqh); }
   .success-screen__button { width: min(29cqw, 39cqh); }
   .game-certificate { width: min(88cqw, 64rem); }
 }
