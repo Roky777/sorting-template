@@ -1,3 +1,4 @@
+import { MATH_LEVELS } from "../data/math-levels.js";
 import { getLevelXpMaximum } from "../core/analytics.js?v=20260923-xp-display-1";
 import { getStarThresholds } from "../core/scoring.js?v=20260923-xp-display-1";
 

@@ -2,7 +2,7 @@ import { getLevel, MATH_LEVELS } from "../data/math-levels.js?v=20260923-level-p
 import { createInitialState } from "./state.js?v=20260923-xp-smooth-1";
 import { bindInput } from "./input.js";
 import { createSounds } from "./sounds.js?v=20260923-xp-smooth-1";
-import { renderHud } from "../render/hud.js?v=20260923-xp-display-1";
+import { renderHud } from "../render/hud.js?v=20260924-hud-levels-fix-1";
 import { renderScene } from "../render/scene.js?v=20260923-seamless-1";
 import { getBeltTravelRate, setBeltTravelRate } from "../render/conveyor.js?v=20260923-seamless-1";
 import { renderGameUi } from "../ui/game-ui.js?v=20260923-certificate-art-1";
