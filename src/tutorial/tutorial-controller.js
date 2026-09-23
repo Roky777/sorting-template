@@ -1,4 +1,4 @@
-const STORAGE_KEY = "shape-motion-sorter:tutorials:v1";
+const STORAGE_KEY = "sorting-template:tutorials:v1";
 function readCompletedTutorials() {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");

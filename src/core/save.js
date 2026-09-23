@@ -1,4 +1,4 @@
-export const SAVE_KEY = "shapeMotionSorter_progress";
+export const SAVE_KEY = "sortingTemplate_progress";
 const SAVE_VERSION = 1;
 
 function getStorage() {
