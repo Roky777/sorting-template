@@ -4,8 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#22bde8" />
+    <link rel="preload" as="image" href="assets/ui/start-background.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="assets/ui/start-logo.png" fetchpriority="high" />
     <title>Shape &amp; Motion Sorter — Grade 1 Maths</title>
-    <link rel="stylesheet" href="styles/main.css?v=20260923-star-target-2" />
+    <link rel="stylesheet" href="styles/main.css?v=20260923-seamless-load-1" />
   </head>
   <body>
     <main class="game-shell" aria-label="Brain Match game">
@@ -15,6 +17,21 @@
         <small>This game is made for landscape play.</small>
       </aside>
       <section id="game-stage" class="game-stage" aria-live="polite">
+        <section id="loading-screen" class="loading-screen" aria-label="Loading game" aria-live="polite">
+          <img class="loading-screen__background" src="assets/ui/start-background.png" alt="" fetchpriority="high" />
+          <div class="loading-screen__shade" aria-hidden="true"></div>
+          <div class="loading-screen__content">
+            <img class="loading-screen__badge" src="assets/ui/start-logo.png" alt="" fetchpriority="high" />
+            <p class="loading-screen__title">Loading…</p>
+            <div class="loading-screen__track" role="progressbar" aria-label="Game loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span data-loading-fill></span>
+            </div>
+            <div class="loading-screen__meta">
+              <small data-loading-status>Preparing your game…</small>
+              <strong data-loading-percent>0%</strong>
+            </div>
+          </div>
+        </section>
         <section id="start-screen" class="start-screen" aria-label="Shape and Motion Sorter start screen">
           <img class="start-screen__background" src="assets/ui/start-background.png" alt="" />
           <img class="start-screen__logo" src="assets/ui/start-logo.png" alt="Let's Sort! Long or Round" />
@@ -64,6 +81,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/main.js?v=20260923-star-target-2"></script>
+    <script type="module" src="src/main.js?v=20260923-seamless-load-1"></script>
   </body>
 </html>

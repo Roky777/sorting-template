@@ -1,14 +1,14 @@
 import { getLevel, MATH_LEVELS } from "../data/math-levels.js";
 import { createInitialState } from "./state.js";
 import { bindInput } from "./input.js";
-import { createSounds } from "./sounds.js";
+import { createSounds } from "./sounds.js?v=20260923-seamless-load-1";
 import { renderHud } from "../render/hud.js";
 import { renderScene } from "../render/scene.js";
 import { BELT_TRAVEL_RATE } from "../render/conveyor.js";
 import { renderGameUi } from "../ui/game-ui.js";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
-import { preloadLevelAssets } from "../data/assets.js";
+import { preloadLevelAssets } from "../data/assets.js?v=20260923-seamless-load-1";
 import { createGameAnalytics } from "./analytics.js";
 import { getPerfectLevelScore, getStarsForScore } from "./scoring.js";
 
@@ -21,12 +21,30 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   let spawnTimer;
   let nextSpawnAt = 0;
   let refillTimer;
+  let nextLevelAssetsRequest;
+  let nextLevelAssetsIndex = -1;
+  let levelTransitioning = false;
   let forceOpeningTutorial = state.levelIndex === 0;
   let drag;
   let tutorial;
   const sounds = createSounds();
   const analytics = createGameAnalytics({ gameId, levelCount: MATH_LEVELS.length, enabled: persistProgress });
   const level = () => getLevel(state.levelIndex);
+
+  function prepareUpcomingLevel() {
+    const upcomingIndex = state.levelIndex + 1;
+    if (upcomingIndex >= MATH_LEVELS.length) return Promise.resolve();
+    if (nextLevelAssetsRequest && nextLevelAssetsIndex === upcomingIndex) return nextLevelAssetsRequest;
+    nextLevelAssetsIndex = upcomingIndex;
+    nextLevelAssetsRequest = preloadLevelAssets(getLevel(upcomingIndex));
+    return nextLevelAssetsRequest;
+  }
+
+  function scheduleUpcomingLevel() {
+    const warm = () => prepareUpcomingLevel();
+    if ("requestIdleCallback" in window) window.requestIdleCallback(warm, { timeout: 3200 });
+    else window.setTimeout(warm, 1200);
+  }
   const ENTRY_GAP = 24;
   const DEFAULT_ITEM_WIDTH = 145;
   const MISS_PENALTY = 10;
@@ -275,6 +293,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     forceOpeningTutorial = false;
     const tutorialStarted = tutorial?.startForLevel(level(), state.levelIndex, { force: forceTutorial }) ?? false;
     if (!tutorialStarted) scheduleSpawn(550);
+    scheduleUpcomingLevel();
   }
 
   function render() {
@@ -342,6 +361,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.stars = getStarsForScore(state.levelScore, state.totalRequired);
     state.campaignStars += state.stars;
     state.completedLevel = true;
+    prepareUpcomingLevel();
     analytics.completeLevel({
       levelNumber: state.levelIndex + 1,
       stars: state.stars,
@@ -525,7 +545,10 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     }, hintDuration);
   }
 
-  function nextLevel() {
+  async function nextLevel() {
+    if (levelTransitioning) return;
+    levelTransitioning = true;
+    if (state.levelIndex < MATH_LEVELS.length - 1) await prepareUpcomingLevel();
     window.dispatchEvent(new CustomEvent("success-dance-stop"));
     sounds.stopSuccessMusic();
     tutorial?.stop({ clear: true });
@@ -535,6 +558,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     spawnTimer = undefined;
     if (state.levelIndex === MATH_LEVELS.length - 1) {
       state.screen = "complete";
+      levelTransitioning = false;
       return render();
     }
     // Closely related picture-challenge levels begin by revisiting concepts
@@ -552,6 +576,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.completedLevel = false;
     loadBelt();
     render();
+    levelTransitioning = false;
   }
 
   function restart() {
@@ -564,6 +589,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     spawnTimer = undefined;
     if (persistProgress) clearGameSave();
     analytics.resetRun();
+    nextLevelAssetsRequest = undefined;
+    nextLevelAssetsIndex = -1;
+    levelTransitioning = false;
     Object.assign(state, createInitialState());
     forceOpeningTutorial = true;
     loadBelt();
@@ -781,6 +809,10 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     sounds.startMusic();
   }
 
+  function warmSecondaryAudio() {
+    sounds.warmSecondaryAudio();
+  }
+
   tutorial = new TutorialController({
     layer: document.querySelector("#tutorial-layer"),
     stage: document.querySelector("#game-stage"),
@@ -794,5 +826,5 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   });
 
   window.sorterAnalytics = analytics;
-  return { start, dispatch, state, enableAudio, showSuccessPreview, analytics };
+  return { start, dispatch, state, enableAudio, warmSecondaryAudio, showSuccessPreview, analytics };
 }

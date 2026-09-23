@@ -152,6 +152,11 @@ export function createSounds() {
   }
 
   return {
+    warmSecondaryAudio() {
+      const player = successMusic();
+      player.preload = "auto";
+      player.load();
+    },
     setMuted(value) {
       muted = value;
       if (muted) stopVoice();

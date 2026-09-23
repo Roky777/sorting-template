@@ -1,7 +1,8 @@
-import { createGame } from "./core/game.js?v=20260923-star-target-2";
+import { createGame } from "./core/game.js?v=20260923-seamless-load-1";
 import { startConveyorAnimation } from "./render/conveyor.js";
-import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js";
+import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-seamless-load-1";
 import { getLevel } from "./data/math-levels.js";
+import { registerRuntimeCache, runStartupLoader, scheduleIdle, waitForImages } from "./core/startup.js?v=20260923-seamless-load-1";
 
 const launchParams = new URLSearchParams(window.location.search);
 const requestedLevel = Number(launchParams.get("level"));
@@ -61,22 +62,38 @@ let transitioning = false;
 let gameBooted = false;
 let preparationRequest;
 let bootRequest;
+let secondaryWarmupScheduled = false;
 const startScreen = document.querySelector("#start-screen");
 const startButton = document.querySelector("#start-button");
+const loadingScreen = document.querySelector("#loading-screen");
+
+registerRuntimeCache();
 
 function prepareGame() {
   if (preparationRequest) return preparationRequest;
-  preparationRequest = Promise.all([
-    hydrateDeferredImages(document.querySelector("#game-stage")),
-    loadControllers(),
-    preloadLevelAssets(getLevel(game.state.levelIndex)),
-    preloadImage(assets.characters.idle),
-    preloadImage(assets.characters.presentation),
-    preloadImage(assets.ui.conveyorRims),
-  ]).then(() => {
+  const tasks = [
+    { label: "Loading the welcome screen…", run: () => waitForImages(startScreen) },
+    { label: "Loading the factory…", run: () => hydrateDeferredImages(document.querySelector("#game-stage")) },
+    { label: "Waking up Sparky…", run: () => loadControllers() },
+    { label: "Preparing the first challenge…", run: () => preloadLevelAssets(getLevel(game.state.levelIndex)) },
+    { label: "Preparing Sparky…", run: () => preloadImage(assets.characters.idle) },
+    { label: "Preparing the guide…", run: () => preloadImage(assets.characters.presentation) },
+    { label: "Starting the conveyor…", run: () => preloadImage(assets.ui.conveyorRims) },
+    { label: "Loading the game letters…", run: () => document.fonts?.ready ?? Promise.resolve() },
+  ];
+  preparationRequest = runStartupLoader({ screen: loadingScreen, tasks }).then(() => {
     document.body.classList.add("game-runtime-loaded");
+    scheduleSecondaryWarmup();
   });
   return preparationRequest;
+}
+
+function scheduleSecondaryWarmup() {
+  if (secondaryWarmupScheduled) return;
+  secondaryWarmupScheduled = true;
+  const secondaryImages = [...Object.values(assets.characters), ...assets.ui.success];
+  scheduleIdle(() => Promise.all(secondaryImages.map(preloadImage)), 3200);
+  game.warmSecondaryAudio?.();
 }
 
 function bootGame() {
@@ -93,17 +110,12 @@ function bootGame() {
 }
 
 function scheduleWarmup() {
-  const warmup = () => prepareGame().catch((error) => {
+  prepareGame().catch((error) => {
     // A click retries the boot path and keeps the start art visible if an
     // unusually early/background preload is interrupted by the browser.
     preparationRequest = undefined;
     console.warn("Game warm-up was interrupted; it will retry on Play.", error);
   });
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(warmup, { timeout: 700 });
-  } else {
-    window.setTimeout(warmup, 120);
-  }
 }
 
 // Let the start screen paint first, then use the child's viewing time to make
