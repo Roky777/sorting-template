@@ -16,10 +16,6 @@ function writeCompletedTutorials(completed) {
   }
 }
 
-function escapeAttribute(value) {
-  return CSS.escape(String(value));
-}
-
 export class TutorialController {
   constructor({
     layer,
@@ -54,8 +50,11 @@ export class TutorialController {
       const action = event.target.closest("[data-tutorial-action]")?.dataset.tutorialAction;
       if (action === "skip") this.skip();
     });
-    this.resizeObserver = new ResizeObserver(() => this.refreshLayout());
-    this.resizeObserver.observe(this.stage);
+    this.resizeObserver = typeof ResizeObserver === "function"
+      ? new ResizeObserver(() => this.refreshLayout())
+      : null;
+    this.resizeObserver?.observe(this.stage);
+    window.addEventListener("resize", () => this.refreshLayout(), { passive: true });
     window.addEventListener("sparky-animation-frame", () => {
       if (this.active) this.refreshLayout();
     });
@@ -105,9 +104,16 @@ export class TutorialController {
 
   resume() {
     if (!this.active) return;
+    const wasPaused = this.paused;
     this.paused = false;
     this.layer.classList.remove("tutorial-layer--paused");
     this.stage.classList.remove("tutorial-paused");
+    // In-game pause intentionally clears timers. Re-arm only automatic
+    // phases so returning from an app/WebView interruption cannot strand the
+    // tutorial forever on “Watch!”, “Great!”, or its completion message.
+    if (wasPaused && this.phase === "demonstration") this.schedule(() => this.completeDemonstration(), 700);
+    if (wasPaused && this.phase === "transition") this.schedule(() => this.advanceAfterTransition(), 320);
+    if (wasPaused && this.phase === "complete") this.schedule(() => this.finish(), 450);
     this.render();
   }
 
@@ -138,12 +144,8 @@ export class TutorialController {
     this.phase = "transition";
     this.onPracticeCorrect(item, category);
     this.react("nod", { force: true });
+    this.schedule(() => this.advanceAfterTransition(), 680);
     this.render();
-    this.schedule(() => {
-      const nextStep = this.guideIndex + 1;
-      if (nextStep < this.guideItems.length) this.showGuidedStep(nextStep);
-      else this.showCompletion();
-    }, 680);
     return true;
   }
 
@@ -161,19 +163,30 @@ export class TutorialController {
     this.dragging = false;
     this.exampleItemId = this.spawnExample(entry.item, "watch");
     this.playPresentation();
+    // Install the continuation before any layout work. Even if an older
+    // WebView rejects a non-essential rendering API, the tutorial still
+    // progresses instead of remaining permanently blocked.
+    this.schedule(() => this.completeDemonstration(), 1750);
     this.requestRender();
     this.render();
-    this.schedule(() => {
-      if (!this.active || this.phase !== "demonstration") return;
-      this.phase = "transition";
-      this.onPracticeCorrect({ ...entry.item, id: this.exampleItemId }, entry.bin.id);
-      this.react("nod", { force: true });
-      this.render();
-      this.schedule(() => {
-        if (this.guideItems.length > 1) this.showGuidedStep(1);
-        else this.showCompletion();
-      }, 520);
-    }, 1750);
+  }
+
+  completeDemonstration() {
+    if (!this.active || this.paused || this.phase !== "demonstration") return;
+    const entry = this.guideItems[this.guideIndex];
+    if (!entry) return this.showCompletion();
+    this.phase = "transition";
+    this.onPracticeCorrect({ ...entry.item, id: this.exampleItemId }, entry.bin.id);
+    this.react("nod", { force: true });
+    this.schedule(() => this.advanceAfterTransition(), 520);
+    this.render();
+  }
+
+  advanceAfterTransition() {
+    if (!this.active || this.paused || this.phase !== "transition") return;
+    const nextStep = this.guideIndex + 1;
+    if (nextStep < this.guideItems.length) this.showGuidedStep(nextStep);
+    else this.showCompletion();
   }
 
   skip() {
@@ -207,10 +220,10 @@ export class TutorialController {
     this.currentStep = this.config.steps.find((candidate) => candidate.type === "completion")
       ?? { instruction: "Great work! Now keep sorting." };
     this.hintLevel = 0;
+    this.schedule(() => this.finish(), 900);
     this.requestRender();
     this.react("happy", { force: true });
     this.render();
-    this.schedule(() => this.finish(), 900);
   }
 
   finish() {
@@ -243,13 +256,17 @@ export class TutorialController {
 
   getItemElement() {
     if (this.exampleItemId == null) return null;
-    return this.stage.querySelector(`[data-draggable-item][data-item-id="${escapeAttribute(this.exampleItemId)}"]`);
+    const expected = String(this.exampleItemId);
+    return [...this.stage.querySelectorAll("[data-draggable-item][data-item-id]")]
+      .find((element) => element.dataset.itemId === expected) ?? null;
   }
 
   getTargetElement() {
     const category = this.currentCategory?.id ?? this.currentItem?.answer;
     if (!category) return null;
-    return this.stage.querySelector(`[data-drop-category="${escapeAttribute(category)}"]`);
+    const expected = String(category);
+    return [...this.stage.querySelectorAll("[data-drop-category]")]
+      .find((element) => element.dataset.dropCategory === expected) ?? null;
   }
 
   refreshLayout() {
