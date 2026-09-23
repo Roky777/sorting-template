@@ -190,7 +190,7 @@ body {
 }
 
 .success-screen__stats {
-  width: min(31cqw, 70cqh, 33rem);
+  width: min(34cqw, 74cqh, 35rem);
 }
 
 .success-screen__button {
@@ -238,7 +238,7 @@ body {
     width: min(48cqw, 55cqh);
   }
 
-  .success-screen__stats { width: min(38cqw, 52cqh); }
+  .success-screen__stats { width: min(42cqw, 58cqh); }
   .success-screen__button { width: min(29cqw, 39cqh); }
   .game-certificate { width: min(88cqw, 64rem); }
 }

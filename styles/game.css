@@ -687,6 +687,19 @@ body.game-runtime-loaded .conveyor__front-beam {
 .success-screen__score strong,
 .success-screen__xp strong { color: #ffd43a; font-size: 1.55em; line-height: 1; text-shadow: 0 .09em 0 #a95b00; white-space: nowrap; }
 .success-screen__xp strong { color: #efffb2; text-shadow: 0 .09em 0 #267208; }
+.success-screen__stats { width: min(34cqw, 74cqh, 35rem); }
+.success-screen__score {
+  grid-template-columns: max-content max-content;
+  justify-content: space-between;
+  column-gap: clamp(.9rem, 1.35cqw, 1.5rem);
+  padding-inline: clamp(.9rem, 1.3cqw, 1.4rem);
+}
+.success-screen__score span {
+  overflow: visible;
+  font-size: .94em;
+  letter-spacing: .045em;
+  text-overflow: clip;
+}
 .success-screen__actions { display: flex; gap: clamp(.5rem, 1cqw, 1rem); justify-content: center; width: 100%; }
 .success-screen__button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .65em; width: min(22cqw, 23rem); min-height: clamp(3.1rem, 8cqh, 5rem); padding: .6em 1.2em .7em; overflow: hidden; border: .28cqw solid #fff4c6; border-radius: 999px; background: linear-gradient(180deg, #ffd13c 0 16%, #ff9d19 47%, #f36a08 100%); color: #fff; font: inherit; font-size: clamp(.9rem, 1.28cqw, 1.35rem); font-weight: 700; letter-spacing: .015em; text-shadow: 0 .1em 0 #a84400; box-shadow: 0 0 0 .18cqw #e66c0a, inset 0 .2em 0 rgb(255 255 255 / 42%), inset 0 -.22em 0 rgb(171 62 0 / 34%), 0 .45em .55em rgb(31 85 103 / 30%); cursor: pointer; transition: transform 140ms ease, filter 140ms ease; }
 .success-screen__button::before { position: absolute; top: 8%; right: 14%; left: 14%; height: 22%; border-radius: 999px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 42%), transparent); content: ""; pointer-events: none; }
