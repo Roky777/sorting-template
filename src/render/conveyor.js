@@ -70,7 +70,15 @@ export function startConveyorAnimation() {
     const beltSpeed = width * BELT_TRAVEL_RATE;
     const dx = beltSpeed * deltaSeconds;
     offset = (offset + dx) % spacing;
-    seamGroup?.setAttribute("transform", `translate(${offset} 0)`);
+    // Move the cached seams with the same perspective geometry as the
+    // original renderer: the front edge travels at full speed while the
+    // rear edge travels at PERSPECTIVE_FACTOR. At the modulo wrap, every
+    // seam lands exactly on its neighbour, so there is no visible snap.
+    const perspectiveShear = (offset * (1 - PERSPECTIVE_FACTOR)) / height;
+    seamGroup?.setAttribute(
+      "transform",
+      `matrix(1 0 ${perspectiveShear} 1 ${offset * PERSPECTIVE_FACTOR} 0)`,
+    );
     // Game objects deliberately do not use a CSS keyframe. Dispatching their
     // per-frame delta makes their movement visually locked to these seams.
     window.dispatchEvent(new CustomEvent("conveyor-motion", {

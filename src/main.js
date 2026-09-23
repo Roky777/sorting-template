@@ -1,5 +1,5 @@
 import { createGame } from "./core/game.js?v=20260923-runtime-smooth-2";
-import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-runtime-smooth-2";
+import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-runtime-smooth-3";
 import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-runtime-smooth-2";
 import { MATH_LEVELS } from "./data/math-levels.js";
 import { registerRuntimeCache, runStartupLoader, waitForImages } from "./core/startup.js?v=20260923-runtime-smooth-2";
