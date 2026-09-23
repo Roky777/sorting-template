@@ -260,4 +260,8 @@ body {
   .game-certificate__stamp > i {
     width: clamp(2.8rem, 12cqh, 4.5rem);
   }
+
+  .game-certificate__buddy {
+    width: clamp(4.25rem, 20cqh, 6.2rem);
+  }
 }

@@ -18,15 +18,15 @@ export function renderGameUi(state, level) {
     const card = document.createElement("article");
     card.className = "game-certificate";
     card.innerHTML = `
-      <div class="game-certificate__sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="game-certificate__confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="game-certificate__sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="game-certificate__crest" aria-hidden="true"><span>★</span></div>
       <p class="game-certificate__eyebrow">Shape Lab Champion</p>
       <h2>Shape &amp; Motion <em>Master!</em></h2>
       <p class="game-certificate__subtitle">All 9 levels complete!</p>
       <div class="game-certificate__results" aria-label="Campaign results">
-        <div><i aria-hidden="true">✓</i><span><small>Levels</small><strong>${MATH_LEVELS.length}<b>/${MATH_LEVELS.length}</b></strong></span></div>
         <div><i aria-hidden="true">XP</i><span><small>XP earned</small><strong>${formatXp(state.campaignXp)}<b>/200</b></strong></span></div>
-        <div><i aria-hidden="true">★</i><span><small>Stars</small><strong>${state.campaignStars}<b>/27</b></strong></span></div>
+        <div><i aria-hidden="true">★</i><span><small>Stars</small><strong>${state.campaignStars}<b>/${MATH_LEVELS.length * 3}</b></strong></span></div>
         <div><i aria-hidden="true">✓</i><span><small>First try</small><strong>${accuracy}<b>%</b></strong></span></div>
       </div>
       <div class="game-certificate__stamps" aria-label="Skills mastered">
@@ -34,7 +34,9 @@ export function renderGameUi(state, level) {
         <div class="game-certificate__stamp game-certificate__stamp--families"><i aria-hidden="true"><b></b><b></b><b></b></i><strong>Families</strong></div>
         <div class="game-certificate__stamp game-certificate__stamp--motion"><i aria-hidden="true">↻</i><strong>Motion</strong></div>
       </div>
-      <div class="game-certificate__action"></div>`;
+      <div class="game-certificate__action"></div>
+      <div class="game-certificate__buddy game-certificate__buddy--square" aria-hidden="true"><span><i></i><i></i><b></b></span></div>
+      <div class="game-certificate__buddy game-certificate__buddy--triangle" aria-hidden="true"><span><i></i><i></i><b></b></span></div>`;
     const restart = document.createElement("button");
     restart.className = "game-modal__button";
     restart.dataset.action = "restart";

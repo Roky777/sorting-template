@@ -1,6 +1,6 @@
 const SCOPE_KEY = new URL(self.registration.scope).pathname.replace(/[^a-z0-9]+/gi, "-");
 const CACHE_PREFIX = `sparky-sorter-runtime-${SCOPE_KEY}-`;
-const CACHE_NAME = `${CACHE_PREFIX}v11`;
+const CACHE_NAME = `${CACHE_PREFIX}v12`;
 const CACHEABLE_DESTINATIONS = new Set(["audio", "font", "image", "script", "style"]);
 
 self.addEventListener("install", () => self.skipWaiting());
