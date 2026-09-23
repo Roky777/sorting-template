@@ -1,3 +1,9 @@
+import { MATH_LEVELS } from "../data/math-levels.js";
+import { getLevelXpMaximum } from "../core/analytics.js?v=20260923-xp-display-1";
+import { getStarThresholds } from "../core/scoring.js?v=20260923-xp-display-1";
+
+const formatXp = (value) => Number((Number(value) || 0).toFixed(2)).toString();
+
 export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");
   root.classList.toggle("game-ui--success", state.completedLevel);
@@ -18,8 +24,8 @@ export function renderGameUi(state, level) {
       <h2>Shape &amp; Motion <em>Master!</em></h2>
       <p class="game-certificate__subtitle">All 9 levels complete!</p>
       <div class="game-certificate__results" aria-label="Campaign results">
-        <div><i aria-hidden="true">★</i><span><small>Score</small><strong>${state.score}</strong></span></div>
-        <div><i aria-hidden="true">XP</i><span><small>XP earned</small><strong>${state.campaignXp}<b>/200</b></strong></span></div>
+        <div><i aria-hidden="true">✓</i><span><small>Levels</small><strong>${MATH_LEVELS.length}<b>/${MATH_LEVELS.length}</b></strong></span></div>
+        <div><i aria-hidden="true">XP</i><span><small>XP earned</small><strong>${formatXp(state.campaignXp)}<b>/200</b></strong></span></div>
         <div><i aria-hidden="true">★</i><span><small>Stars</small><strong>${state.campaignStars}<b>/27</b></strong></span></div>
         <div><i aria-hidden="true">✓</i><span><small>First try</small><strong>${accuracy}<b>%</b></strong></span></div>
       </div>
@@ -54,6 +60,7 @@ export function renderGameUi(state, level) {
     root.append(feedback);
   }
   if (state.completedLevel) {
+    const levelXpMaximum = getLevelXpMaximum(state.levelIndex + 1, MATH_LEVELS.length);
     const success = document.createElement("section");
     success.className = "success-screen";
     success.setAttribute("aria-label", `Level complete. ${state.stars} out of 3 stars.`);
@@ -73,14 +80,13 @@ export function renderGameUi(state, level) {
           ].map((source, index) => `<span class="success-star success-star--${index + 1}${index < state.stars ? " success-star--earned" : ""}" style="--star-index:${index}"><img src="assets/ui/${source}" alt="" /></span>`).join("")}
         </div>
         <div class="success-screen__stats">
-          <p class="success-screen__score"><span>Level score</span><strong>${state.levelScore}</strong></p>
-          <p class="success-screen__xp"><span>XP earned</span><strong>+${state.levelXp}</strong></p>
+          <p class="success-screen__score"><span>XP earned</span><strong>${formatXp(state.levelXp)} / ${formatXp(levelXpMaximum)} XP</strong></p>
         </div>
         <div class="success-screen__actions"></div>
       </div>`;
     const actions = success.querySelector(".success-screen__actions");
-    const starBaseline = state.totalRequired * 10 + Math.floor(state.totalRequired / 5) * 5;
-    if (state.levelScore < starBaseline * 0.45) {
+    const { twoStars } = getStarThresholds(levelXpMaximum);
+    if (state.levelXp < twoStars) {
       const retry = document.createElement("button");
       retry.className = "success-screen__button success-screen__button--secondary";
       retry.dataset.action = "retry-level";

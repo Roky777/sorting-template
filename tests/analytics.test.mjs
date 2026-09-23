@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const analyticsSource = await readFile(new URL("../src/core/analytics.js", import.meta.url), "utf8");
+const scoringSource = await readFile(new URL("../src/core/scoring.js", import.meta.url), "utf8");
 const {
   CAMPAIGN_XP_CAP,
   calculateLevelXp,
@@ -10,6 +11,7 @@ const {
   getLevelXpMaximum,
   getObjectXp,
 } = await import(`data:text/javascript;base64,${Buffer.from(analyticsSource).toString("base64")}`);
+const { getStarsForXp } = await import(`data:text/javascript;base64,${Buffer.from(scoringSource).toString("base64")}`);
 
 const rounded = (value) => Math.round(value * 1_000_000) / 1_000_000;
 
@@ -22,6 +24,10 @@ test("all level allocations total exactly 200 XP", () => {
     assert.equal(total, CAMPAIGN_XP_CAP);
   }
   assert.equal(getLevelXpMaximum(1, 10), 20);
+  assert.deepEqual(
+    [1, 2, 3].map((level) => getLevelXpMaximum(level, 3)),
+    [66, 67, 67],
+  );
 });
 
 test("object allocations total exactly their level allocation", () => {
@@ -38,7 +44,7 @@ test("object allocations total exactly their level allocation", () => {
   }
 });
 
-test("analytics gives XP only to successful object tasks", () => {
+test("analytics gives XP only to first-try eligible successful object tasks", () => {
   const analytics = createGameAnalytics({
     gameId: "xp-test",
     levelCount: 3,
@@ -46,7 +52,7 @@ test("analytics gives XP only to successful object tasks", () => {
   });
   analytics.startLevel(2);
   analytics.recordTask({ itemName: "A", correctChoice: "x", choiceMade: "y", successful: false });
-  analytics.recordTask({ itemName: "A", correctChoice: "x", choiceMade: "x", successful: true });
+  analytics.recordTask({ itemName: "A", correctChoice: "x", choiceMade: "x", successful: true, xpEligible: false });
   analytics.recordTask({ itemName: "B", correctChoice: "x", choiceMade: "x", successful: true });
   analytics.recordTask({ itemName: "C", correctChoice: "x", choiceMade: "x", successful: true });
   const payload = analytics.completeLevel({
@@ -56,10 +62,19 @@ test("analytics gives XP only to successful object tasks", () => {
     firstTryCorrect: 2,
     score: 20,
   });
-  assert.equal(payload.xpEarned, getLevelXpMaximum(2, 3));
+  const expectedXp = rounded(
+    getObjectXp(2, 3, 2, 3) + getObjectXp(2, 3, 3, 3),
+  );
+  assert.equal(payload.xpEarned, expectedXp);
   assert.equal(payload.level.tasks[0].xpEarned, 0);
   assert.equal(
     rounded(payload.level.tasks.reduce((sum, task) => sum + task.xpEarned, 0)),
     payload.xpEarned,
   );
+});
+
+test("stars follow level XP percentage thresholds", () => {
+  assert.equal(getStarsForXp(60.3, 67), 3);
+  assert.equal(getStarsForXp(46.9, 67), 2);
+  assert.equal(getStarsForXp(46.89, 67), 1);
 });

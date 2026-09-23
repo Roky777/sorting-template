@@ -7,7 +7,7 @@
     <link rel="preload" as="image" href="assets/ui/start-background.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="assets/ui/start-logo.webp" fetchpriority="high" />
     <title>Shape &amp; Motion Sorter — Grade 1 Maths</title>
-    <link rel="stylesheet" href="styles/main.css?v=20260923-xp-smooth-1" />
+    <link rel="stylesheet" href="styles/main.css?v=20260923-xp-display-1" />
   </head>
   <body>
     <main class="game-shell" aria-label="Brain Match game">
@@ -71,7 +71,7 @@
             <div class="progress-card__track" role="progressbar" aria-label="Level mastery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="mastery-fill"></span></div>
             <span id="mastery-text">0 / 15</span>
           </div>
-          <div id="score-card" class="hud__score" aria-label="Score"><img data-src="assets/ui/ui-score-badge.webp" alt="" /><span id="score-text">0</span><small id="star-target" class="hud__star-target" aria-live="polite">2★</small></div>
+          <div id="score-card" class="hud__score" aria-label="Level XP"><img data-src="assets/ui/ui-score-badge.webp" alt="" /><span id="score-text">0 XP</span><small id="star-target" class="hud__star-target" aria-live="polite">2★</small></div>
           <button id="sound-button" class="icon-button icon-button--sound" type="button" aria-label="Toggle sound"><img data-src="assets/ui/ui-music-button.webp" alt="" /></button>
           <button id="back-button" class="icon-button icon-button--pause" type="button" aria-label="Pause game"><span aria-hidden="true"></span></button>
         </header>
@@ -81,6 +81,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/main.js?v=20260923-level-pacing-1"></script>
+    <script type="module" src="src/main.js?v=20260923-xp-display-1"></script>
   </body>
 </html>

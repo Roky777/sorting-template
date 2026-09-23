@@ -2,15 +2,15 @@ import { getLevel, MATH_LEVELS } from "../data/math-levels.js?v=20260923-level-p
 import { createInitialState } from "./state.js?v=20260923-xp-smooth-1";
 import { bindInput } from "./input.js";
 import { createSounds } from "./sounds.js?v=20260923-xp-smooth-1";
-import { renderHud } from "../render/hud.js";
+import { renderHud } from "../render/hud.js?v=20260923-xp-display-1";
 import { renderScene } from "../render/scene.js?v=20260923-runtime-smooth-2";
 import { getBeltTravelRate, setBeltTravelRate } from "../render/conveyor.js?v=20260923-level-pacing-1";
-import { renderGameUi } from "../ui/game-ui.js?v=20260923-xp-smooth-1";
+import { renderGameUi } from "../ui/game-ui.js?v=20260923-xp-display-1";
 import { TutorialController } from "../tutorial/tutorial-controller.js";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js";
 import { preloadLevelAssets } from "../data/assets.js?v=20260923-runtime-smooth-2";
-import { createGameAnalytics, getLevelXpMaximum } from "./analytics.js?v=20260923-xp-smooth-1";
-import { getPerfectLevelScore, getStarsForScore } from "./scoring.js";
+import { createGameAnalytics, getLevelXpMaximum, getObjectXp } from "./analytics.js?v=20260923-xp-display-1";
+import { getStarsForXp } from "./scoring.js?v=20260923-xp-display-1";
 
 export function createGame({ persistProgress = true, gameId = "sorting-template" } = {}) {
   const state = createInitialState();
@@ -47,7 +47,6 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   }
   const ENTRY_GAP = 24;
   const DEFAULT_ITEM_WIDTH = 145;
-  const MISS_PENALTY = 10;
   let beltWidth = window.innerWidth;
 
   const itemKey = (item) => item.name;
@@ -168,11 +167,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.attempts += missedItems.length;
     state.levelAttempts += missedItems.length;
     state.correctStreak = 0;
-    state.score -= MISS_PENALTY * missedItems.length;
-    state.levelScore -= MISS_PENALTY * missedItems.length;
     state.feedback = {
       type: "missed",
-      message: missedItems.length > 1 ? `Missed ${missedItems.length}! −${MISS_PENALTY * missedItems.length}` : `Missed! −${MISS_PENALTY}`,
+      message: missedItems.length > 1 ? `Missed ${missedItems.length}! Try again.` : "Missed! Try again.",
     };
     sounds.retry();
     reactSparky("surprised");
@@ -362,7 +359,8 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
   function finishLevel() {
     if (state.completedLevel) return;
     state.activeItems = [];
-    state.stars = getStarsForScore(state.levelScore, state.totalRequired);
+    const levelXpMaximum = getLevelXpMaximum(state.levelIndex + 1, MATH_LEVELS.length);
+    state.stars = getStarsForXp(state.levelXp, levelXpMaximum);
     state.campaignStars += state.stars;
     state.completedLevel = true;
     prepareUpcomingLevel();
@@ -373,8 +371,8 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
       firstTryCorrect: state.levelFirstTryCorrect,
       score: state.levelScore,
     });
-    state.levelXp = analyticsResult?.xpEarned
-      ?? getLevelXpMaximum(state.levelIndex + 1, MATH_LEVELS.length);
+    state.levelXp = analyticsResult?.xpEarned ?? state.levelXp;
+    state.levelScore = state.levelXp;
     state.campaignXp = Math.min(
       analytics.getCampaignXpCap(),
       state.campaignXp + state.levelXp,
@@ -395,12 +393,12 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     const previewStars = Math.max(1, Math.min(3, Math.round(Number(stars) || 3)));
     const levelIndex = previewLevel - 1;
     const targetLevel = MATH_LEVELS[levelIndex];
-    const starBaseline = getPerfectLevelScore(targetLevel.goal);
-    const defaultScore = previewStars === 3
-      ? starBaseline
+    const levelXpMaximum = getLevelXpMaximum(previewLevel, MATH_LEVELS.length);
+    const defaultXp = previewStars === 3
+      ? levelXpMaximum
       : previewStars === 2
-        ? Math.ceil(starBaseline * 0.65)
-        : Math.floor(starBaseline * 0.3);
+        ? levelXpMaximum * 0.7
+        : levelXpMaximum * 0.4;
 
     tutorial?.stop({ clear: true });
     window.clearTimeout(advanceTimer);
@@ -415,9 +413,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.level = previewLevel;
     state.totalRequired = targetLevel.goal;
     state.completedMastery = targetLevel.goal;
-    state.levelScore = Number.isFinite(Number(score)) ? Math.round(Number(score)) : defaultScore;
+    state.levelXp = Number.isFinite(Number(score)) ? Math.max(0, Math.min(levelXpMaximum, Number(score))) : defaultXp;
+    state.levelScore = state.levelXp;
     state.score = state.levelScore;
-    state.levelXp = getLevelXpMaximum(previewLevel, MATH_LEVELS.length);
     state.campaignXp = Array.from(
       { length: previewLevel },
       (_, index) => getLevelXpMaximum(index + 1, MATH_LEVELS.length),
@@ -443,18 +441,13 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     if (state.paused || state.completedLevel || state.placed || !activeItem) return;
     if (tutorial?.handleChoice(activeItem, category)) return;
     const correct = activeItem.answer === category;
-    analytics.recordTask({
-      itemName: activeItem.name,
-      correctChoice: activeItem.answer,
-      choiceMade: category,
-      successful: correct,
-    });
     if (correct) {
       const mastery = state.mastery[itemKey(activeItem)];
       const wasMastered = mastery.correct >= level().requiredCorrectPerItem;
       const beforeProgress = state.totalRequired ? state.completedMastery / state.totalRequired : 0;
       const firstTry = mastery.mistakesSinceCorrect === 0;
-      const points = 10;
+      const xpGain = firstTry ? getObjectXp(state.levelIndex + 1, MATH_LEVELS.length, state.completedMastery + 1, state.totalRequired) : 0;
+      analytics.recordTask({ itemName: activeItem.name, correctChoice: activeItem.answer, choiceMade: category, successful: true, xpEligible: firstTry });
       mastery.correct += 1;
       mastery.mistakesSinceCorrect = 0;
       state.completedMastery = Math.min(state.totalRequired, state.completedMastery + 1);
@@ -465,10 +458,8 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
         state.levelFirstTryCorrect += 1;
       }
       state.correctStreak += 1;
-      let bonus = 0;
       let rewardTitle;
       const newlyMastered = !wasMastered && mastery.correct === level().requiredCorrectPerItem;
-      if (state.correctStreak % 5 === 0) bonus = 5;
       if (!state.sortedCategories.includes(activeItem.answer)) state.sortedCategories.push(activeItem.answer);
       const previousInCategory = state.lastCorrectByCategory[activeItem.answer];
       if (state.levelIndex === 2 && previousInCategory && previousInCategory !== activeItem.name && !state.specialRewards.includes("family-insight")) {
@@ -480,8 +471,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
         rewardTitle = activeItem.answer === "rolls" ? "It rolls!" : "It slides!";
       }
       state.lastCorrectByCategory[activeItem.answer] = activeItem.name;
-      state.score += points + bonus;
-      state.levelScore += points + bonus;
+      state.levelXp = Math.round((state.levelXp + xpGain) * 1_000_000) / 1_000_000;
+      state.levelScore = state.levelXp;
+      state.score = Math.round((state.score + xpGain) * 1_000_000) / 1_000_000;
       state.correct += 1;
       state.placed = { art: activeItem.art, assetSet: activeItem.assetSet, category };
       state.selectedItemId = null;
@@ -508,7 +500,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
         state.placed = null;
         state.feedback = {
           type: newlyMastered ? "mastered" : "correct",
-          message: `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Great job!")} +${points + bonus}`,
+          message: xpGain > 0 ? `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Great job!")} +${Number(xpGain.toFixed(2))} XP` : `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Correct!")} Keep going!`,
           category,
         };
         sounds.success();
@@ -529,13 +521,12 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
       return;
     }
     const mastery = state.mastery[itemKey(activeItem)];
+    analytics.recordTask({ itemName: activeItem.name, correctChoice: activeItem.answer, choiceMade: category, successful: false, xpEligible: false });
     mastery.wrong += 1;
     mastery.mistakesSinceCorrect += 1;
     state.attempts += 1;
     state.levelAttempts += 1;
     state.correctStreak = 0;
-    state.score -= 10;
-    state.levelScore -= 10;
     // A wrong item snaps back onto the moving belt immediately. Pausing it here
     // would let following objects catch up and visually form a stack.
     activeItem.beltState = "moving";
@@ -543,7 +534,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.selectedItemId = null;
     state.feedback = {
       type: "wrong",
-      message: mastery.wrong >= 3 ? "Try the glowing box −10" : mastery.wrong >= 2 ? "Look at the shape clue −10" : "Try again! −10",
+      message: mastery.wrong >= 3 ? "Try the glowing box" : mastery.wrong >= 2 ? "Look at the shape clue" : "Try again!",
       category,
     };
     sounds.retry();

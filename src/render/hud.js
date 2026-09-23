@@ -1,7 +1,10 @@
-import { getStarThresholds } from "../core/scoring.js";
+import { getLevelXpMaximum } from "../core/analytics.js?v=20260923-xp-display-1";
+import { getStarThresholds } from "../core/scoring.js?v=20260923-xp-display-1";
 
 let previousScore;
 let previousLevel;
+
+const formatXp = (value) => Number((Number(value) || 0).toFixed(2)).toString();
 
 // Measured directly from assets/ui/ui-progress-bar.png (2172 x 400).
 // These bounds describe only the recessed dark-brown track, never the frame
@@ -61,19 +64,21 @@ export function renderHud(state, level) {
   track.setAttribute("aria-valuenow", String(Math.round(clampedProgress * 100)));
   document.querySelector("#mastery-text").textContent = `${state.completedMastery} / ${state.totalRequired}`;
   const scoreCard = document.querySelector("#score-card");
-  const displayedScore = state.levelScore;
+  const displayedScore = state.levelXp;
   if (state.level !== previousLevel) {
     previousLevel = state.level;
     previousScore = undefined;
   }
-  document.querySelector("#score-text").textContent = String(displayedScore);
+  scoreCard.setAttribute("aria-label", "Level XP");
+  document.querySelector("#score-text").textContent = `${formatXp(displayedScore)} XP`;
   const starTarget = document.querySelector("#star-target");
-  const { twoStars, threeStars } = getStarThresholds(state.totalRequired);
-  if (state.levelScore >= threeStars) starTarget.textContent = "3★ READY!";
-  else if (state.levelScore >= twoStars) starTarget.textContent = `3★ AT ${threeStars}`;
-  else starTarget.textContent = `2★ AT ${twoStars}`;
-  starTarget.classList.toggle("hud__star-target--ready", state.levelScore >= threeStars);
-  starTarget.setAttribute("aria-label", `Two stars at ${twoStars} points. Three stars at ${threeStars} points.`);
+  const levelXpMaximum = getLevelXpMaximum(state.levelIndex + 1, MATH_LEVELS.length);
+  const { twoStars, threeStars } = getStarThresholds(levelXpMaximum);
+  if (displayedScore >= threeStars - 0.000001) starTarget.textContent = "3★ READY!";
+  else if (displayedScore >= twoStars) starTarget.textContent = `3★ AT ${formatXp(threeStars)} XP`;
+  else starTarget.textContent = `2★ AT ${formatXp(twoStars)} XP`;
+  starTarget.classList.toggle("hud__star-target--ready", displayedScore >= threeStars - 0.000001);
+  starTarget.setAttribute("aria-label", `Two stars at ${formatXp(twoStars)} XP. Three stars at ${formatXp(threeStars)} XP.`);
   if (previousScore !== undefined && displayedScore !== previousScore) {
     scoreCard.classList.remove("hud__score--gain", "hud__score--penalty");
     void scoreCard.offsetWidth;

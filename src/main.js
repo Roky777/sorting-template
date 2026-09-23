@@ -1,4 +1,4 @@
-import { createGame } from "./core/game.js?v=20260923-level-pacing-1";
+import { createGame } from "./core/game.js?v=20260923-xp-display-1";
 import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-level-pacing-1";
 import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-runtime-smooth-2";
 import { MATH_LEVELS } from "./data/math-levels.js?v=20260923-level-pacing-1";

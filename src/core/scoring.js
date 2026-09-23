@@ -1,19 +1,10 @@
-export function getPerfectLevelScore(goal) {
-  const safeGoal = Math.max(0, Math.trunc(Number(goal) || 0));
-  return safeGoal * 10 + Math.floor(safeGoal / 5) * 5;
+export function getStarThresholds(levelXpMaximum) {
+  const maximum = Math.max(0, Number(levelXpMaximum) || 0);
+  return { twoStars: maximum * 0.7, threeStars: maximum * 0.9, maximum };
 }
 
-export function getStarThresholds(goal) {
-  const perfectScore = getPerfectLevelScore(goal);
-  return {
-    twoStars: Math.ceil(perfectScore * 0.45),
-    threeStars: Math.ceil(perfectScore * 0.8),
-    perfectScore,
-  };
-}
-
-export function getStarsForScore(score, goal) {
-  const { twoStars, threeStars } = getStarThresholds(goal);
-  const safeScore = Number(score) || 0;
-  return safeScore >= threeStars ? 3 : safeScore >= twoStars ? 2 : 1;
+export function getStarsForXp(xpEarned, levelXpMaximum) {
+  const { twoStars, threeStars } = getStarThresholds(levelXpMaximum);
+  const xp = Math.max(0, Number(xpEarned) || 0);
+  return xp >= threeStars - 0.000001 ? 3 : xp >= twoStars ? 2 : 1;
 }

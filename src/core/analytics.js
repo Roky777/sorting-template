@@ -17,7 +17,9 @@ export function getLevelXpMaximum(levelNumber, levelCount) {
   const safeLevel = clamp(Math.trunc(Number(levelNumber) || 1), 1, safeCount);
   const base = Math.floor(CAMPAIGN_XP_CAP / safeCount);
   const remainder = CAMPAIGN_XP_CAP % safeCount;
-  return base + (safeLevel <= remainder ? 1 : 0);
+  // Keep earlier levels at the rounded-down share and carry the remainder
+  // forward. Example: 200 XP / 3 levels => 66, 67, 67.
+  return base + (remainder > 0 && safeLevel > safeCount - remainder ? 1 : 0);
 }
 
 export function getObjectXp(levelNumber, levelCount, objectIndex, objectCount) {
@@ -135,7 +137,7 @@ export function createGameAnalytics({ gameId, levelCount, levels = [], enabled =
   let levelStartedAt = 0;
   let taskStartedAt = 0;
   let taskSequence = 0;
-  let successfulTasks = 0;
+  let completedTasks = 0;
   let tasks = [];
   let submittedLevels = new Set();
 
@@ -153,19 +155,19 @@ export function createGameAnalytics({ gameId, levelCount, levels = [], enabled =
     levelStartedAt = now();
     taskStartedAt = levelStartedAt;
     taskSequence = 0;
-    successfulTasks = 0;
+    completedTasks = 0;
     tasks = [];
   };
 
-  const recordTask = ({ itemName, correctChoice, choiceMade, successful }) => {
+  const recordTask = ({ itemName, correctChoice, choiceMade, successful, xpEligible = true }) => {
     if (!enabled || currentLevel === null) return;
     const timestamp = now();
     taskSequence += 1;
     const objectCount = levelObjectCounts[currentLevel - 1];
     let xpEarned = 0;
-    if (successful && successfulTasks < objectCount) {
-      successfulTasks += 1;
-      xpEarned = getObjectXp(currentLevel, totalLevels, successfulTasks, objectCount);
+    if (successful && completedTasks < objectCount) {
+      completedTasks += 1;
+      if (xpEligible) xpEarned = getObjectXp(currentLevel, totalLevels, completedTasks, objectCount);
     }
     tasks.push({
       taskId: `task_${taskSequence}`,
@@ -187,7 +189,7 @@ export function createGameAnalytics({ gameId, levelCount, levels = [], enabled =
     if (currentLevel !== normalizedLevel) startLevel(normalizedLevel);
 
     const objectCount = levelObjectCounts[normalizedLevel - 1];
-    const xp = calculateLevelXp(normalizedLevel, totalLevels, successfulTasks, objectCount);
+    const xp = Math.round(tasks.reduce((total, task) => total + task.xpEarned, 0) * XP_PRECISION) / XP_PRECISION;
     const level = {
       levelId: String(normalizedLevel),
       levelNumber: normalizedLevel,
@@ -214,7 +216,7 @@ export function createGameAnalytics({ gameId, levelCount, levels = [], enabled =
         { key: "attempts", value: String(safeAttempts) },
         { key: "first_try_correct", value: String(safeFirstTry) },
         { key: "accuracy", value: String(safeAttempts ? safeFirstTry / safeAttempts : 0) },
-        { key: "score", value: String(Math.round(Number(score) || 0)) },
+        { key: "score", value: String(Math.round((Number(score) || 0) * XP_PRECISION) / XP_PRECISION) },
         { key: "xp_earned", value: String(xp) },
         { key: "level_xp_max", value: String(getLevelXpMaximum(normalizedLevel, totalLevels)) },
         { key: "object_count", value: String(objectCount) },
