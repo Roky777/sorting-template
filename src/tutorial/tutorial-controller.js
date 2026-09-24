@@ -56,7 +56,7 @@ export class TutorialController {
     this.resizeObserver?.observe(this.stage);
     window.addEventListener("resize", () => this.refreshLayout(), { passive: true });
     window.addEventListener("sparky-animation-frame", () => {
-      if (this.active) this.refreshLayout();
+      if (this.active) this.syncSparkyFrame();
     });
   }
 
@@ -270,6 +270,26 @@ export class TutorialController {
       .find((element) => element.dataset.dropCategory === expected) ?? null;
   }
 
+  syncSparkyFrame() {
+    const sourceViewport = this.stage.querySelector("#sparky .sparky__viewport");
+    const copiedViewport = this.layer.querySelector(".tutorial-sparky-copy .sparky__viewport");
+    if (!sourceViewport || !copiedViewport) return;
+
+    copiedViewport.style.cssText = sourceViewport.style.cssText;
+    const sourceImage = sourceViewport.querySelector("img");
+    let copiedImage = copiedViewport.querySelector("img");
+    if (!sourceImage) {
+      copiedViewport.replaceChildren();
+      return;
+    }
+    if (!copiedImage || copiedImage.src !== sourceImage.src) {
+      copiedImage = sourceImage.cloneNode(true);
+      copiedViewport.replaceChildren(copiedImage);
+    } else {
+      copiedImage.style.cssText = sourceImage.style.cssText;
+    }
+  }
+
   refreshLayout() {
     if (!this.active) return;
     const item = this.getItemElement();
@@ -395,6 +415,6 @@ export class TutorialController {
     // Populate and position the stable spotlight before the next paint.
     // A second pass accounts for any layout settling without rebuilding it.
     this.refreshLayout();
-    requestAnimationFrame(() => this.refreshLayout());
+    if (rebuildLayer) requestAnimationFrame(() => this.refreshLayout());
   }
 }

@@ -1,4 +1,4 @@
-import { createGame } from "./core/game.js?v=20260925-stable-bin-1";
+import { createGame } from "./core/game.js?v=20260925-stable-bin-2";
 import { startConveyorAnimation } from "./render/conveyor.js?v=20260923-seamless-1";
 import { assets, hydrateDeferredImages, preloadImage, preloadLevelAssets } from "./data/assets.js?v=20260923-seamless-1";
 import { MATH_LEVELS } from "./data/math-levels.js?v=20260923-level-pacing-1";
