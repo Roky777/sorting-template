@@ -1,11 +1,11 @@
 import { MATH_LEVELS } from "../data/math-levels.js";
-import { getLevelXpMaximum } from "../core/analytics.js?v=20260923-xp-display-1";
-import { getStarThresholds } from "../core/scoring.js?v=20260923-xp-display-1";
+import { getLevelXpMaximum } from "../core/analytics.js?v=20260924-integer-xp-1";
+import { getStarThresholds } from "../core/scoring.js?v=20260924-integer-xp-1";
 
 let previousScore;
 let previousLevel;
 
-const formatXp = (value) => Number((Number(value) || 0).toFixed(2)).toString();
+const formatXp = (value) => String(Math.round(Number(value) || 0));
 
 // Measured directly from assets/ui/ui-progress-bar.png (2172 x 400).
 // These bounds describe only the recessed dark-brown track, never the frame

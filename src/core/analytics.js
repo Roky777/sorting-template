@@ -1,6 +1,5 @@
 const ANALYTICS_QUEUE_KEY = "ignite_pending_sessions_jsplugin";
 export const CAMPAIGN_XP_CAP = 200;
-const XP_PRECISION = 1_000_000;
 
 const now = () => globalThis.performance?.now?.() ?? Date.now();
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -25,10 +24,13 @@ export function getLevelXpMaximum(levelNumber, levelCount) {
 export function getObjectXp(levelNumber, levelCount, objectIndex, objectCount) {
   const safeObjectCount = Math.max(1, Math.trunc(Number(objectCount) || 1));
   const safeObject = clamp(Math.trunc(Number(objectIndex) || 1), 1, safeObjectCount);
-  const levelUnits = getLevelXpMaximum(levelNumber, levelCount) * XP_PRECISION;
-  const baseUnits = Math.floor(levelUnits / safeObjectCount);
-  const remainderUnits = levelUnits % safeObjectCount;
-  return (baseUnits + (safeObject <= remainderUnits ? 1 : 0)) / XP_PRECISION;
+  const levelXp = getLevelXpMaximum(levelNumber, levelCount);
+  // Carry each fractional remainder into the following object. The difference
+  // between consecutive cumulative floors is always an integer, and the last
+  // object closes the level at its exact XP allocation.
+  const previousTotal = Math.floor((levelXp * (safeObject - 1)) / safeObjectCount);
+  const currentTotal = Math.floor((levelXp * safeObject) / safeObjectCount);
+  return currentTotal - previousTotal;
 }
 
 export function calculateLevelXp(levelNumber, levelCount, completedObjects, objectCount) {
@@ -38,7 +40,7 @@ export function calculateLevelXp(levelNumber, levelCount, completedObjects, obje
   for (let index = 1; index <= safeCompleted; index += 1) {
     xp += getObjectXp(levelNumber, levelCount, index, safeObjectCount);
   }
-  return Math.round(xp * XP_PRECISION) / XP_PRECISION;
+  return xp;
 }
 
 function readQueue() {
@@ -189,7 +191,7 @@ export function createGameAnalytics({ gameId, levelCount, levels = [], enabled =
     if (currentLevel !== normalizedLevel) startLevel(normalizedLevel);
 
     const objectCount = levelObjectCounts[normalizedLevel - 1];
-    const xp = Math.round(tasks.reduce((total, task) => total + task.xpEarned, 0) * XP_PRECISION) / XP_PRECISION;
+    const xp = tasks.reduce((total, task) => total + task.xpEarned, 0);
     const level = {
       levelId: String(normalizedLevel),
       levelNumber: normalizedLevel,
@@ -216,7 +218,7 @@ export function createGameAnalytics({ gameId, levelCount, levels = [], enabled =
         { key: "attempts", value: String(safeAttempts) },
         { key: "first_try_correct", value: String(safeFirstTry) },
         { key: "accuracy", value: String(safeAttempts ? safeFirstTry / safeAttempts : 0) },
-        { key: "score", value: String(Math.round((Number(score) || 0) * XP_PRECISION) / XP_PRECISION) },
+        { key: "score", value: String(Math.round(Number(score) || 0)) },
         { key: "xp_earned", value: String(xp) },
         { key: "level_xp_max", value: String(getLevelXpMaximum(normalizedLevel, totalLevels)) },
         { key: "object_count", value: String(objectCount) },

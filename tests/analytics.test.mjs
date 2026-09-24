@@ -32,16 +32,21 @@ test("all level allocations total exactly 200 XP", () => {
 
 test("object allocations total exactly their level allocation", () => {
   for (const objectCount of [1, 2, 3, 7, 10, 11]) {
-    const earned = Array.from(
+    const allocations = Array.from(
       { length: objectCount },
       (_, index) => getObjectXp(2, 3, index + 1, objectCount),
-    ).reduce((sum, xp) => sum + xp, 0);
-    assert.equal(rounded(earned), getLevelXpMaximum(2, 3));
+    );
+    assert.ok(allocations.every(Number.isInteger));
+    assert.equal(allocations.reduce((sum, xp) => sum + xp, 0), getLevelXpMaximum(2, 3));
     assert.equal(
       calculateLevelXp(2, 3, objectCount, objectCount),
       getLevelXpMaximum(2, 3),
     );
   }
+  assert.deepEqual(
+    Array.from({ length: 10 }, (_, index) => getObjectXp(2, 3, index + 1, 10)),
+    [6, 7, 7, 6, 7, 7, 6, 7, 7, 7],
+  );
 });
 
 test("analytics gives XP only to first-try eligible successful object tasks", () => {
@@ -74,7 +79,8 @@ test("analytics gives XP only to first-try eligible successful object tasks", ()
 });
 
 test("stars follow level XP percentage thresholds", () => {
-  assert.equal(getStarsForXp(60.3, 67), 3);
-  assert.equal(getStarsForXp(46.9, 67), 2);
-  assert.equal(getStarsForXp(46.89, 67), 1);
+  assert.equal(getStarsForXp(61, 67), 3);
+  assert.equal(getStarsForXp(60, 67), 2);
+  assert.equal(getStarsForXp(47, 67), 2);
+  assert.equal(getStarsForXp(46, 67), 1);
 });

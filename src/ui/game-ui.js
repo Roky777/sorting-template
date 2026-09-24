@@ -1,8 +1,8 @@
 import { MATH_LEVELS } from "../data/math-levels.js";
-import { getLevelXpMaximum } from "../core/analytics.js?v=20260923-xp-display-1";
-import { getStarThresholds } from "../core/scoring.js?v=20260923-xp-display-1";
+import { getLevelXpMaximum } from "../core/analytics.js?v=20260924-integer-xp-1";
+import { getStarThresholds } from "../core/scoring.js?v=20260924-integer-xp-1";
 
-const formatXp = (value) => Number((Number(value) || 0).toFixed(2)).toString();
+const formatXp = (value) => String(Math.round(Number(value) || 0));
 
 export function renderGameUi(state, level) {
   const root = document.querySelector("#game-ui");

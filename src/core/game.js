@@ -2,15 +2,15 @@ import { getLevel, MATH_LEVELS } from "../data/math-levels.js?v=20260923-level-p
 import { createInitialState } from "./state.js?v=20260923-xp-smooth-1";
 import { bindInput } from "./input.js";
 import { createSounds } from "./sounds.js?v=20260923-xp-smooth-1";
-import { renderHud } from "../render/hud.js?v=20260924-hud-levels-fix-1";
+import { renderHud } from "../render/hud.js?v=20260924-integer-xp-1";
 import { renderScene } from "../render/scene.js?v=20260923-seamless-1";
 import { getBeltTravelRate, setBeltTravelRate } from "../render/conveyor.js?v=20260923-seamless-1";
-import { renderGameUi } from "../ui/game-ui.js?v=20260924-shared-certificate-1";
+import { renderGameUi } from "../ui/game-ui.js?v=20260924-integer-xp-1";
 import { TutorialController } from "../tutorial/tutorial-controller.js?v=20260923-webview-recovery-1";
 import { clearGameSave, readGameSave, saveHighestLevel } from "./save.js?v=20260923-storage-namespaces-1";
 import { preloadLevelAssets } from "../data/assets.js?v=20260923-seamless-1";
-import { createGameAnalytics, getLevelXpMaximum, getObjectXp } from "./analytics.js?v=20260923-xp-display-1";
-import { getStarsForXp } from "./scoring.js?v=20260923-xp-display-1";
+import { createGameAnalytics, getLevelXpMaximum, getObjectXp } from "./analytics.js?v=20260924-integer-xp-1";
+import { getStarThresholds, getStarsForXp } from "./scoring.js?v=20260924-integer-xp-1";
 
 export function createGame({ persistProgress = true, gameId = "sorting-template" } = {}) {
   const state = createInitialState();
@@ -401,11 +401,12 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     const levelIndex = previewLevel - 1;
     const targetLevel = MATH_LEVELS[levelIndex];
     const levelXpMaximum = getLevelXpMaximum(previewLevel, MATH_LEVELS.length);
+    const { twoStars } = getStarThresholds(levelXpMaximum);
     const defaultXp = previewStars === 3
       ? levelXpMaximum
       : previewStars === 2
-        ? levelXpMaximum * 0.7
-        : levelXpMaximum * 0.4;
+        ? twoStars
+        : Math.ceil(levelXpMaximum * 0.4);
 
     tutorial?.stop({ clear: true });
     window.clearTimeout(advanceTimer);
@@ -420,7 +421,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
     state.level = previewLevel;
     state.totalRequired = targetLevel.goal;
     state.completedMastery = targetLevel.goal;
-    state.levelXp = Number.isFinite(Number(score)) ? Math.max(0, Math.min(levelXpMaximum, Number(score))) : defaultXp;
+    state.levelXp = Number.isFinite(Number(score))
+      ? Math.max(0, Math.min(levelXpMaximum, Math.round(Number(score))))
+      : defaultXp;
     state.levelScore = state.levelXp;
     state.score = state.levelScore;
     state.campaignXp = Array.from(
@@ -478,9 +481,9 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
         rewardTitle = activeItem.answer === "rolls" ? "It rolls!" : "It slides!";
       }
       state.lastCorrectByCategory[activeItem.answer] = activeItem.name;
-      state.levelXp = Math.round((state.levelXp + xpGain) * 1_000_000) / 1_000_000;
+      state.levelXp += xpGain;
       state.levelScore = state.levelXp;
-      state.score = Math.round((state.score + xpGain) * 1_000_000) / 1_000_000;
+      state.score += xpGain;
       state.correct += 1;
       state.placed = { art: activeItem.art, assetSet: activeItem.assetSet, category };
       state.selectedItemId = null;
@@ -507,7 +510,7 @@ export function createGame({ persistProgress = true, gameId = "sorting-template"
         state.placed = null;
         state.feedback = {
           type: newlyMastered ? "mastered" : "correct",
-          message: xpGain > 0 ? `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Great job!")} +${Number(xpGain.toFixed(2))} XP` : `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Correct!")} Keep going!`,
+          message: xpGain > 0 ? `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Great job!")} +${xpGain} XP` : `${rewardTitle ?? (newlyMastered ? "Mastered!" : "Correct!")} Keep going!`,
           category,
         };
         sounds.success();
