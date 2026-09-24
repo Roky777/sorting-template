@@ -92,6 +92,7 @@ export class TutorialController {
     this.phase = "";
     this.layer.hidden = true;
     this.layer.replaceChildren();
+    delete this.layer.dataset.renderKey;
   }
 
   pause() {
@@ -306,7 +307,7 @@ export class TutorialController {
         // Clone the complete rendered bin, not only its cardboard image.
         // This preserves every game's category picture, multi-line label,
         // leaves and any bin-specific styling inside the tutorial spotlight.
-        const targetKey = `${target.dataset.dropCategory}:${target.dataset.renderKey}`;
+        const targetKey = target.dataset.dropCategory;
         if (targetCopy.dataset.sourceKey !== targetKey) {
           targetCopy.dataset.sourceKey = targetKey;
           const binClone = target.cloneNode(true);
@@ -362,13 +363,26 @@ export class TutorialController {
       </div>
       <button class="tutorial-skip" type="button" data-tutorial-action="skip" aria-label="Skip tutorial">Skip</button>` : "";
 
-    this.layer.className = `tutorial-layer tutorial-layer--${this.phase} tutorial-layer--hint-${this.hintLevel}${showSpotlight ? " tutorial-layer--show-spotlight" : ""}`;
-    this.layer.innerHTML = `
-      <div class="tutorial-dimmer" aria-hidden="true"></div>
-      <div class="tutorial-sparky-copy" aria-hidden="true" hidden></div>
-      <div class="tutorial-target-copy" aria-hidden="true" hidden></div>
-      <img class="tutorial-object-copy" alt="" hidden />
-      ${card}`;
+    const renderKey = [
+      this.phase,
+      this.hintLevel,
+      targetBin?.id ?? "",
+      this.exampleItemId ?? "",
+      instruction ?? "",
+      showSpotlight ? "spotlight" : "plain",
+    ].join("|");
+    const rebuildLayer = this.layer.dataset.renderKey !== renderKey
+      || !this.layer.querySelector(".tutorial-dimmer");
+    if (rebuildLayer) {
+      this.layer.dataset.renderKey = renderKey;
+      this.layer.className = `tutorial-layer tutorial-layer--${this.phase} tutorial-layer--hint-${this.hintLevel}${showSpotlight ? " tutorial-layer--show-spotlight" : ""}`;
+      this.layer.innerHTML = `
+        <div class="tutorial-dimmer" aria-hidden="true"></div>
+        <div class="tutorial-sparky-copy" aria-hidden="true" hidden></div>
+        <div class="tutorial-target-copy" aria-hidden="true" hidden></div>
+        <img class="tutorial-object-copy" alt="" hidden />
+        ${card}`;
+    }
 
     this.stage.classList.remove("tutorial-introducing");
     const item = this.getItemElement();
@@ -378,6 +392,9 @@ export class TutorialController {
       bin.classList.toggle("sorting-bin--tutorial-target", isTarget && (isGuide || isDemonstration));
       bin.classList.remove("sorting-bin--tutorial-intro");
     });
+    // Populate and position the stable spotlight before the next paint.
+    // A second pass accounts for any layout settling without rebuilding it.
+    this.refreshLayout();
     requestAnimationFrame(() => this.refreshLayout());
   }
 }
