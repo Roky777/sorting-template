@@ -50,18 +50,21 @@
   letter-spacing: -.035em;
 }
 
-/* Stack food-group names at their existing semantic hyphen spans. */
-.game-shell .sorting-bins[data-count] .sorting-bin__category-label--hyphenated {
-  flex-direction: column;
-  padding: .08em .3em .14em;
-  font-size: clamp(.5rem, min(.98cqw, 2.3cqh), .96rem);
-  line-height: .78;
-  letter-spacing: -.015em;
-  white-space: normal;
+/* Keep hyphenated food-group names on one line; they nearly fit already, so
+   a small type reduction is cleaner than wrapping the words. */
+.game-shell .sorting-bins[data-count] .sorting-bin__category-label--hyphenated,
+.game-shell .tutorial-target-copy .sorting-bin__category-label--hyphenated {
+  flex-direction: row;
+  padding: .04em .22em .12em;
+  font-size: clamp(.46rem, min(.88cqw, 2.1cqh), .9rem);
+  line-height: .92;
+  letter-spacing: -.035em;
+  white-space: nowrap;
 }
 
-.game-shell .sorting-bins[data-count] .sorting-bin__category-label--hyphenated > span {
-  display: block;
+.game-shell .sorting-bins[data-count] .sorting-bin__category-label--hyphenated > span,
+.game-shell .tutorial-target-copy .sorting-bin__category-label--hyphenated > span {
+  display: inline;
 }
 
 body {
