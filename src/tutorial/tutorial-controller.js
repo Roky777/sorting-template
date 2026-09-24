@@ -296,15 +296,24 @@ export class TutorialController {
     }
     if (targetCopy) {
       const revealTarget = target && ["guide", "demonstration"].includes(this.phase);
-      const targetImage = revealTarget ? target.querySelector(".sorting-bin__image") : null;
-      const targetRect = targetImage?.getBoundingClientRect();
+      const targetRect = revealTarget ? target.getBoundingClientRect() : null;
       targetCopy.hidden = !targetRect;
       if (targetRect) {
-        targetCopy.src = targetImage.currentSrc || targetImage.src;
         targetCopy.style.left = `${targetRect.left - stageRect.left}px`;
         targetCopy.style.top = `${targetRect.top - stageRect.top}px`;
         targetCopy.style.width = `${targetRect.width}px`;
         targetCopy.style.height = `${targetRect.height}px`;
+        // Spotlight the complete visible bin. Some games use finished bin
+        // artwork while others render the category icon and label separately.
+        const targetKey = `${target.dataset.dropCategory}:${target.dataset.renderKey}`;
+        if (targetCopy.dataset.sourceKey !== targetKey) {
+          targetCopy.dataset.sourceKey = targetKey;
+          targetCopy.replaceChildren(
+            ...[...target.querySelectorAll(
+              ".sorting-bin__leaves, .sorting-bin__image, .sorting-bin__category-icon, .sorting-bin__category-label",
+            )].map((element) => element.cloneNode(true)),
+          );
+        }
       }
     }
     if (objectCopy) {
@@ -348,7 +357,7 @@ export class TutorialController {
     this.layer.innerHTML = `
       <div class="tutorial-dimmer" aria-hidden="true"></div>
       <div class="tutorial-sparky-copy" aria-hidden="true" hidden></div>
-      <img class="tutorial-target-copy" alt="" aria-hidden="true" hidden />
+      <div class="tutorial-target-copy" aria-hidden="true" hidden></div>
       <img class="tutorial-object-copy" alt="" hidden />
       ${card}`;
 

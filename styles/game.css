@@ -610,7 +610,11 @@ body.game-runtime-loaded .conveyor__front-beam {
 .tutorial-target-copy { position: absolute; z-index: 2; pointer-events: none; }
 .tutorial-sparky-copy { filter: brightness(1.06) drop-shadow(0 0 .42rem rgb(255 229 103 / 58%)); }
 .tutorial-sparky-copy .sparky__viewport { position: absolute; top: 0; height: 100%; overflow: hidden; }
-.tutorial-target-copy { object-fit: contain; filter: brightness(1.07) drop-shadow(0 0 .42rem rgb(255 226 82 / 62%)); transform: scale(1.015); transform-origin: 50% 55%; }
+.tutorial-target-copy {
+  filter: brightness(1.07) drop-shadow(0 0 .42rem rgb(255 226 82 / 62%));
+  transform: scale(1.015);
+  transform-origin: 50% 55%;
+}
 .tutorial-sparky-copy[hidden],
 .tutorial-target-copy[hidden] { display: none; }
 .tutorial-object-copy { position: absolute; z-index: 2; object-fit: contain; pointer-events: none; filter: brightness(1.07) drop-shadow(0 0 .38rem rgb(255 226 82 / 62%)); animation: tutorial-copy-glow 820ms ease-in-out infinite alternate; }
